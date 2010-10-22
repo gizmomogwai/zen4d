@@ -1,7 +1,7 @@
 all: zend
 
 %.o: %.d
-	dmd -c $<
+	dmd -unittest -c $<
 
 zend: zend.o
 	dmd $^

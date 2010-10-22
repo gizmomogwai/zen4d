@@ -46,9 +46,46 @@ class Result {
 }
 
 class Parser {
-      Result parse(string s) {
-        return new Result();
+      string fRest;
+      this() {
+        fRest = null;
       }
+      Parser parse(string s) {
+        return null;
+      }
+      void print(int indent = 0) {
+      }
+      void printIndent(int indent) {
+        for (int i=0; i<indent; i++) {
+          write(" ");
+        }
+      }
+      void setRest(string rest) {
+        fRest = rest;
+      }
+      @property string rest() { return fRest; }
+      @property string rest(string rest) { return fRest = rest; }
+}
+
+class Epsilon : Parser {
+  Parser parse(string s) {
+    if (s.length == 0) {
+      return this;
+    } else {
+      return null;
+    }
+  }
+  void print(int indent=0) {
+    printIndent(indent);
+    writeln("Epsilon");
+  }
+  unittest {
+     auto parser = new Epsilon;
+     auto res = parser.parse("");
+     assert(res == parser);
+     res = parser.parse("a");
+     assert(res is null);
+  }
 }
 
 class Matcher : Parser {
@@ -56,67 +93,118 @@ class Matcher : Parser {
       this(string expected) {
         fExpected = expected;
       }
-      Result parse(string s) {
+      Parser parse(string s) {
         if (s.indexOf(fExpected) == 0) {
-	  return new Result(s[fExpected.length..$], new ContentNode(fExpected));
+	  setRest(s[fExpected.length..$]);
+	  return this;
 	} else {
-          return new Result;
+          return null;
 	}
       }
+
+      unittest {
+        auto parser = new Matcher("test");
+	auto res = parser.parse("test");
+	assert(res == parser);
+	assert(res.rest == null);
+      }
+
+      unittest {
+        auto parser = new Matcher("test");
+	auto res = parser.parse("abc");
+	assert(res is null);
+      }
+
+      unittest {
+        auto parser = new Matcher("test");
+	auto res = parser.parse("test2");
+	assert(res == parser);
+	assert(res.rest == "2");
+      }
 }
-class Epsilon : Parser {
-  this() {}
-  Result parse(string s) {
+
+
+class AlnumParser : public Parser {
+  string content;
+  Parser parse(string s) {
     if (s.length == 0) {
-      return new Result("", new ContentNode(""));
-    } else {
-      return new Result;
-    }
-  }
-}
-class AsciiParser : public Parser {
-  Result parse(string s) {
-    if (s.length == 0) {
-      return new Result;
+      return null;
     }
 
-    string res;
     for (int i=0; i<s.length; i++) {
     	if (isalnum(s[i])) {
-	  res = res ~ s[i];
+	  content = content ~ s[i];
 	} else {
-	  return new Result(s[i..$], new ContentNode(res));
+	  this.rest = s[content.length..$];
+	  return this;
 	}
     }
-    return new Result("", new ContentNode(res));
+    return this;
+  }
+  void print(int indent) {
+    printIndent(indent);
+    writeln(content);
+  }
+
+  unittest {
+    AlnumParser parser = new AlnumParser();
+    AlnumParser res = cast(AlnumParser)parser.parse("abc");
+    assert(res == parser);
+    assert(res.rest == null);
+    assert(res.content == "abc");
+  }
+  unittest {
+    AlnumParser parser = new AlnumParser();
+    AlnumParser res = cast(AlnumParser)parser.parse("abc+");
+    assert(res == parser);
+    assert(res.rest == "+");
+    assert(res.content == "abc");
   }
 }
+
 class Or : Parser {
       Parser[] fParsers;
+      Parser res;
       this(Parser[] parsers ...) {
         fParsers = parsers.dup;
-        writefln("number of parsers: %d", fParsers.length);
       }
 
-      Result parse(string s) {
+      Parser parse(string s) {
         foreach (parser; fParsers) {
-	  auto res = parser.parse(s);
-	  if (res.fNodes !is null) {
+	  res = parser.parse(s);
+	  if (res !is null) {
 	     return res;
 	  }
 	}
-	return new Result;
+	return null;
       }
-}
 
-class LazyParser : Parser {
-  Parser delegate() fDg;
-  this(Parser delegate() parser) {
-    fDg = parser;
-  }
-  Result parse(string s) {
-    return fDg().parse(s);
-  }
+      void print(int indent) {
+        res.print(indent+2);
+      }
+
+      unittest {
+        auto abParser = new Matcher("ab");
+	auto cdParser = new Matcher("cd");
+        auto parser = new Or(abParser, cdParser);
+	auto res = parser.parse("ab");
+	assert(res == abParser);
+      }
+
+      unittest {
+        auto abParser = new Matcher("ab");
+	auto cdParser = new Matcher("cd");
+        auto parser = new Or(abParser, cdParser);
+	auto res = parser.parse("cd");
+	assert(res == cdParser);
+      }
+      unittest {
+        auto abParser = new Matcher("ab");
+	auto cdParser = new Matcher("cd");
+        auto parser = new Or(abParser, cdParser);
+	auto res = parser.parse("ef");
+	assert(res is null);
+      }
 }
 
 class And : Parser {
@@ -124,86 +212,61 @@ class And : Parser {
       this(Parser[] parsers ...) {
         fParsers = parsers.dup;
       }
-      Result parse(string s) {
-	Node[] nodes;
+      Parser parse(string s) {
         string h = s;
         foreach (parser; fParsers) {
 	  auto res = parser.parse(h);
-          if (res.fNodes !is null) {
-	    nodes = nodes ~ res.fNodes;
-	    h = res.fInput;
+          if (res !is null) {
+	    h = res.rest;
 	  } else {
-            return new Result;
+            return null;
 	  }
 	}
-        return new Result(h, nodes);
+        return this;
       }
-}
-/*
-class Node {
-      Node parent;
-      Node[] childs;
-      this(Node parent_=null, string name_="root") {
-      	     name = name_;
-	     parent = parent_;
-	     if (parent !is null) {
-	     	parent.addChild(this);
-	     }
-      }
-      void addChild(Node child) {
-      	   childs = childs ~ child;
-      }
-      string name;
-      void printSpaces(int ident) {
-      	   for (auto i=0; i<ident; ++i) {
-	       writef(" ");
-	   }
-      }
-      void print(int ident=0) {
-        printSpaces(ident);
-        writefln("<%s>", name);
-	foreach (c; childs) {
-		c.print(ident+2);
-	}
-	printSpaces(ident);
-	writefln("</%s>", name);
-      }
-      Node root() {
-        if (parent is null) {
-	  return this;
-	} else {
-	  return parent.root();
+      void print(int indent) {
+        foreach (parser ; fParsers) {
+	  parser.print(indent+2);
 	}
       }
+    unittest {
+      auto parser = new And(new Matcher("a"), new Matcher("b"));
+      auto res = parser.parse("ab");
+      assert(res == parser);
+    }
+    unittest {
+      auto parser = new And(new Matcher("a"), new Matcher("b"));
+      auto res = parser.parse("ac");
+      assert(res is null);
+    }
 }
-class Parser {
-      Node tree;
-      string currentString;
-      this() {
-        tree = new Node;
-        currentString = "";
-      }
-      void consume(char c) {
-        if (isalnum(c)) {
-	  currentString = currentString ~ c;
-	} else if (c == '>') {
-          if (currentString.length > 0) {
-	    tree = new Node(tree, currentString);
-            currentString = "";
-          }
-	} else {
- 	  throw new Exception("unknown character: " ~c);
-	}
-      }
-      Node finish() {
-        if (currentString.length > 0) {
-          tree = new Node(tree, currentString);
-        }
-        return tree.root();
-      }
-}
-*/
 
+
+class LazyParser : Parser {
+  Parser delegate() fDg;
+  Parser fParser;
+  this(Parser delegate() parser) {
+    fDg = parser;
+  }
+  Parser parse(string s) {
+    fParser = fDg();
+    return fParser.parse(s);
+  }
+  void print(int indent) {
+    fParser.print(indent);
+  }
+  unittest {
+    // endless -> epsilon | "a" endless
+    Parser endless() {
+        return new Or(new Epsilon, new And(new Matcher("a"), new LazyParser(delegate Parser() { return endless; })));
+    }
+    auto parser = endless();
+    auto res = parser.parse("aa");
+    assert(res !is null);
+    res = parser.parse("aaaaaaaaaaaaaaaaaaaaaab");
+    assert(res is null);
+  }
+}
 
 class MyParser {
 /*
@@ -214,6 +277,7 @@ class MyParser {
       expr
       expr -> (expr+expr) | (expr>expr)
   */
+/*
      static Parser match(string s) {
        return new Matcher(s);
      }
@@ -227,20 +291,12 @@ class MyParser {
       static Parser epsilon() {
         return new Epsilon;
       }
-
-/*
- endless
- endless -> e | endless "+" "a"
 */
 
-   static Parser endless() {
-     return or(epsilon(), and(match("a"), new LazyParser(delegate Parser() {return endless();})));
-   }
 /*
-
   nodes
-  nodes -> node "+" nodes
-  node -> e | node ">" nodes
+  nodes -> epsilon | node"+"nodes
+  node -> name | name">"nodes
 
 */
 
@@ -249,10 +305,12 @@ class MyParser {
         return and(node(), match("+"), nodes());
       }
 */
+/*
       static Parser my() {
           return and(new AsciiParser(), new Matcher(">"), new AsciiParser());
 //      	  return new LazyParserdelegate Parser() { return new Matcher("a"); });
       }
+*/
 
 /*
       static Parser expr() {
@@ -270,15 +328,9 @@ class MyParser {
 */
 }
 
-
-
 int main(string[] args) {
      auto input = args[1];
-//     Parser parser = MyParser.expr();//new AsciiParser;
-     Parser parser;
-     parser = MyParser.endless();
-//     parser = MyParser.and(MyParser.match("a"), MyParser.match("b"));
-     auto result = parser.parse(input);
+/*
      if (result is null) {
      	writeln("result null");
 	return 1;
