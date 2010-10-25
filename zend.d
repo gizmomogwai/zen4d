@@ -88,6 +88,31 @@ class Epsilon : Parser {
   }
 }
 
+
+class Number : Parser {
+  string fNumber;
+  Parser parse(string s) {
+    for (int i=0; i<s.length; i++) {
+      if (!isdigit(s[i])) {
+        return null;
+      }
+    }
+    fNumber = s;
+    return this;
+  }
+  unittest {
+    Number parser = new Number;
+    Number res = cast(Number)parser.parse("1234");
+    assert(res.fNumber == "1234");
+  }
+  unittest {
+    Number parser = new Number;
+    Number res = cast(Number) parser.parse("123a");
+    assert(res !is null);
+    assert(res.rest == "a");
+  }
+}
+
 class Matcher : Parser {
       string fExpected;
       this(string expected) {
@@ -241,6 +266,65 @@ class And : Parser {
     }
 }
 
+class Opt : Parser {
+  Parser fParser;
+  this(Parser parser) {
+    fParser = parser;
+  }
+  Parser parse(string s) {
+    auto res = fParser.parse(s);
+    if (res is null) {
+      return new None;
+    } else {
+      return fParser;
+    }
+  }
+  unittest {
+    auto abc = new Matcher("abc");
+    auto opt = new Opt(abc);
+    auto res = opt.parse("abc");
+    assert(typeid(res) == typeid(Matcher));
+  }
+  unittest {
+    auto abc = new Matcher("abc");
+    auto opt = new Opt(abc);
+    auto res = opt.parse("efg");
+    assert(typeid(res) == typeid(None));
+  }
+}
+
+// float -> concat(digit opt(concat(.)opt(digit)))
+class Float : Parser {
+  Parser fParser;
+  this() {
+    fParser = new And(new Number, new Matcher("."), new Number);//new Opt(new And(new Matcher("."), new Opt(new Number))));
+  }
+  Parser parse(string s) {
+    return fParser.parse(s);
+  }
+  unittest {
+    auto parser = new Float;
+    auto res = parser.parse("abc");
+//    assert(res is null);
+  }
+
+  unittest {
+    auto parser = new Float;
+    auto res = parser.parse("1234");
+//    assert(res !is null);
+  }
+
+  unittest {
+    auto parser = new Float;
+    auto res = parser.parse("1234.123");
+    assert(res !is null);
+  }
+}
+
+
+class None : Parser {
+  Parser parse(string s) { return this; }
+}
 
 class LazyParser : Parser {
   Parser delegate() fDg;
@@ -268,6 +352,10 @@ class LazyParser : Parser {
   }
 }
 
+// digit
+// float -> number | number. | number.number
+// number -> e | [0-9]number
+
 class MyParser {
 /*
       static Parser getit() {
@@ -290,6 +378,9 @@ class MyParser {
       }
       static Parser epsilon() {
         return new Epsilon;
+      }
+      static Parser digit() {
+        
       }
 */
 
