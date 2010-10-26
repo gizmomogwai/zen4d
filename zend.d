@@ -3,67 +3,33 @@ import std.array;
 import std.ctype;
 import std.string;
 
-class Node {
-  void print(int ident=0) {
-       writeln("Not implemented");
-  }
-}
-
-class ContentNode : Node {
-  string fContent;
-  this(string content) {
-    fContent = content;
-  }
-  void printSpaces(int ident) {
-    for (int i=0; i<ident; i++) {
-      write(" ");
-    }
-  }
-
-  void print(int ident) {
-    printSpaces(ident);
-    writefln("<%s>", fContent);
-    printSpaces(ident);
-    writefln("</%s>", fContent);
-  }
-}
-
-class Result {
-  string fInput;
-  Node[] fNodes;
-  this() {
-    fInput = null;
-    fNodes = null;
-  }
-  this(string input, Node node) {
-    fInput = input;
-    fNodes = fNodes ~ node;
-  }
-  this(string input, Node[] nodes) {
-    fInput = input;
-    fNodes = nodes;
-  }
-}
-
-class Parser {
+abstract class Parser {
       string fRest;
+
       this() {
         fRest = null;
       }
+
       Parser parse(string s) {
         return null;
       }
-      void print(int indent = 0) {
-      }
-      void printIndent(int indent) {
+
+      abstract string print(int indent = 0);
+
+      string printIndent(int indent) {
+        string res;
         for (int i=0; i<indent; i++) {
-          write(" ");
+          res ~= " ";
         }
+	return res;
       }
+
       void setRest(string rest) {
         fRest = rest;
       }
+
       @property string rest() { return fRest; }
+
       @property string rest(string rest) { return fRest = rest; }
 }
 
@@ -75,10 +41,10 @@ class Epsilon : Parser {
       return null;
     }
   }
-  void print(int indent=0) {
-    printIndent(indent);
-    writeln("Epsilon");
+  string print(int indent=0) {
+    return printIndent(indent) ~ "epsilon";
   }
+
   unittest {
      auto parser = new Epsilon;
      auto res = parser.parse("");
@@ -86,20 +52,35 @@ class Epsilon : Parser {
      res = parser.parse("a");
      assert(res is null);
   }
-}
 
+  unittest {
+    auto parser = new Epsilon;
+    auto s = parser.print(4);
+    assert(s == "    epsilon");
+  }
+}
 
 class Number : Parser {
   string fNumber;
   Parser parse(string s) {
     for (int i=0; i<s.length; i++) {
-      if (!isdigit(s[i])) {
-        return null;
-      }
+    	if (isdigit(s[i])) {
+	  fNumber = fNumber ~ s[i];
+	} else {
+	  if (fNumber.empty) {
+            return null;
+	  } else {
+	    this.rest = s[fNumber.length..$];
+	    return this;
+          }
+	}
     }
-    fNumber = s;
     return this;
   }
+  string print(int indent) {
+    return printIndent(indent) ~ "Number(" ~ fNumber ~ ")";
+  }
+
   unittest {
     Number parser = new Number;
     Number res = cast(Number)parser.parse("1234");
@@ -110,6 +91,11 @@ class Number : Parser {
     Number res = cast(Number) parser.parse("123a");
     assert(res !is null);
     assert(res.rest == "a");
+  }
+  unittest {
+    Number parser = new Number;
+    auto res = parser.parse("abc");
+    assert(res is null);
   }
 }
 
@@ -125,6 +111,10 @@ class Matcher : Parser {
 	} else {
           return null;
 	}
+      }
+
+      string print(int indent) {
+        return printIndent(indent) ~ "Matcher(" ~ fExpected ~ ")";
       }
 
       unittest {
@@ -150,7 +140,7 @@ class Matcher : Parser {
 
 
 class AlnumParser : public Parser {
-  string content;
+  string fContent;
   Parser parse(string s) {
     if (s.length == 0) {
       return null;
@@ -158,17 +148,16 @@ class AlnumParser : public Parser {
 
     for (int i=0; i<s.length; i++) {
     	if (isalnum(s[i])) {
-	  content = content ~ s[i];
+	  fContent = fContent ~ s[i];
 	} else {
-	  this.rest = s[content.length..$];
+	  this.rest = s[fContent.length..$];
 	  return this;
 	}
     }
     return this;
   }
-  void print(int indent) {
-    printIndent(indent);
-    writeln(content);
+  string print(int indent) {
+    return printIndent(indent) ~ "Alnum(" ~ fContent ~ ")";
   }
 
   unittest {
@@ -176,14 +165,16 @@ class AlnumParser : public Parser {
     AlnumParser res = cast(AlnumParser)parser.parse("abc");
     assert(res == parser);
     assert(res.rest == null);
-    assert(res.content == "abc");
+    assert(res.fContent == "abc");
   }
   unittest {
     AlnumParser parser = new AlnumParser();
     AlnumParser res = cast(AlnumParser)parser.parse("abc+");
     assert(res == parser);
     assert(res.rest == "+");
-    assert(res.content == "abc");
+    assert(res.fContent == "abc");
+  }
+  unittest {
   }
 }
 
@@ -204,8 +195,8 @@ class Or : Parser {
 	return null;
       }
 
-      void print(int indent) {
-        res.print(indent+2);
+      string print(int indent) {
+        return printIndent(indent) ~ "OR(\n" ~ res.print(indent+2) ~ "\n" ~ printIndent(indent) ~ ")";
       }
 
       unittest {
@@ -249,11 +240,15 @@ class And : Parser {
 	}
         return this;
       }
-      void print(int indent) {
+      string print(int indent) {
+        string res = printIndent(indent) ~ "AND(\n";
         foreach (parser ; fParsers) {
-	  parser.print(indent+2);
+	  res = res ~ parser.print(indent+2) ~ "\n";
 	}
+        res ~= printIndent(indent) ~ ")\n";
+	return res;
       }
+
     unittest {
       auto parser = new And(new Matcher("a"), new Matcher("b"));
       auto res = parser.parse("ab");
@@ -268,50 +263,63 @@ class And : Parser {
 
 class Opt : Parser {
   Parser fParser;
+  Parser fRes;
   this(Parser parser) {
     fParser = parser;
   }
   Parser parse(string s) {
     auto res = fParser.parse(s);
     if (res is null) {
-      return new None;
+      fRes = new None;
     } else {
-      return fParser;
+      fRes = fParser;
     }
+    return this;
+  }
+  string print(int indent) {
+    return printIndent(indent) ~ "opt(\n" ~ fRes.print(indent+2) ~ ")";
   }
   unittest {
     auto abc = new Matcher("abc");
     auto opt = new Opt(abc);
     auto res = opt.parse("abc");
-    assert(typeid(res) == typeid(Matcher));
+    assert(res !is null);
   }
   unittest {
     auto abc = new Matcher("abc");
     auto opt = new Opt(abc);
     auto res = opt.parse("efg");
-    assert(typeid(res) == typeid(None));
+    assert(res !is null);
   }
 }
 
-// float -> concat(digit opt(concat(.)opt(digit)))
 class Float : Parser {
   Parser fParser;
+  Parser fRes;
   this() {
-    fParser = new And(new Number, new Matcher("."), new Number);//new Opt(new And(new Matcher("."), new Opt(new Number))));
+    fParser = new And(new Number, new Opt(new And(new Matcher("."), new Opt(new Number))));
   }
   Parser parse(string s) {
-    return fParser.parse(s);
+    fRes = fParser.parse(s);
+    if (fRes !is null) {
+      return this;
+    }
+    return null;
   }
+  string print(int indent) {
+    return printIndent(indent) ~ "Float\n" ~ fRes.print(indent) ~ ")";
+  }
+
   unittest {
     auto parser = new Float;
     auto res = parser.parse("abc");
-//    assert(res is null);
+    assert(res is null);
   }
 
   unittest {
     auto parser = new Float;
     auto res = parser.parse("1234");
-//    assert(res !is null);
+    assert(res !is null);
   }
 
   unittest {
@@ -319,11 +327,24 @@ class Float : Parser {
     auto res = parser.parse("1234.123");
     assert(res !is null);
   }
+  unittest {
+    auto parser = new Float;
+    auto res = parser.parse("1234.123a");
+    assert(res !is null);
+  }
+  unittest {
+    auto parser = new Float;
+    auto res = parser.parse("1234.");
+    assert(res !is null);
+  }
 }
 
 
 class None : Parser {
   Parser parse(string s) { return this; }
+  string print(int indent) {
+    return printIndent(indent) ~ "None";
+  }
 }
 
 class LazyParser : Parser {
@@ -336,8 +357,8 @@ class LazyParser : Parser {
     fParser = fDg();
     return fParser.parse(s);
   }
-  void print(int indent) {
-    fParser.print(indent);
+  string print(int indent) {
+    return fParser.print(indent);
   }
   unittest {
     // endless -> epsilon | "a" endless
@@ -345,16 +366,13 @@ class LazyParser : Parser {
         return new Or(new Epsilon, new And(new Matcher("a"), new LazyParser(delegate Parser() { return endless; })));
     }
     auto parser = endless();
-    auto res = parser.parse("aa");
+    auto res = parser.parse("aaaaaaaaaaaaaaaa");
     assert(res !is null);
+    writeln(res.print());
     res = parser.parse("aaaaaaaaaaaaaaaaaaaaaab");
     assert(res is null);
   }
 }
-
-// digit
-// float -> number | number. | number.number
-// number -> e | [0-9]number
 
 class MyParser {
 /*
@@ -419,6 +437,11 @@ class MyParser {
 */
 }
 
+class Help {
+  string toString() {
+    return "myhelp";
+  }
+}
 int main(string[] args) {
      auto input = args[1];
 /*
