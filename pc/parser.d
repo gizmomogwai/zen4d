@@ -4,81 +4,11 @@ import std.stdio;
 import std.array;
 import std.ctype;
 import std.string;
+import util.callable;
 
-/*
-template Test2(T2 ...) {
-  void print() {
-    writeln(T2);
-  }
-  void print2(T2 t) {
-    writefln(t);
-  }
-}
-  unittest {
-    Test2!(1, 2, 3).print();
-    Test2!(int, int ,int).print2(4, 5,  6);
-  }
-
-*/
-template Write(A ...)
-{
-    void write(A a)
-    {
-      writeln("in write");
-      writeln(a);
-      myfunc(a);
-    }
-    void myfunc(int a, int b) {
-      writeln("with 2 parameters");
-    }
-    void myfunc() {
-      writeln("without parameters");
-    }
-}
-unittest {
-  Write!(int, int).write(1, 2);
-  Write!().write();
-}
-
-class Wrapper(R, P ...) {
-  R delegate(P) fDelegate;
-  R function(P) fFunction;
-  this(R delegate(P) del) {
-    assert(del !is null);
-    fDelegate = del;
-  }
-  this(R function(P) fun) {
-    assert(fun !is null);
-    fFunction = fun;
-  }
-  R call(P p) {
-    if (fDelegate !is null) {
-      return fDelegate(p);
-    } else {
-      return fFunction(p);
-    }
-  }
-}
-
-unittest {
-  class Test {
-    void d1(int a) {
-      writefln("delegate 1 %d", a);
-    }
-    int d2() {
-      writefln("delegate 2");
-      return 2;
-    }
-  }
-  Test t = new Test;
-  Wrapper!(int) w = new Wrapper!(int)(&t.d2);
-  assert(w.call() == 2);
-  Wrapper!(void, int) w2 = new Wrapper!(void, int)(&t.d1);
-  w2.call(3);
-}
 abstract class Parser {
   private string fRest = null;
-  Wrapper!(Object, Parser) fCallable = null;
+  Callable!(Object, Parser) fCallable = null;
   Object parse(string s) {
     auto res = internalParse(s);
     if (fCallable !is null) {
@@ -514,17 +444,17 @@ class Repeat : Parser {
 
 
 class LazyParser : Parser {
-  Wrapper!(Parser) fWrapper;
+  Callable!(Parser) fWrapper;
   Parser fParser;
 
   this(Parser delegate() parser) {
     assert(parser != null);
-    fWrapper = new Wrapper!(Parser)(parser);
+    fWrapper = new Callable!(Parser)(parser);
   }
 
   this(Parser function() parser) {
     assert(parser != null);
-    fWrapper = new Wrapper!(Parser)(parser);
+    fWrapper = new Callable!(Parser)(parser);
   }
 
   Parser internalParse(string s) {
