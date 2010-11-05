@@ -5,27 +5,77 @@ import std.array;
 import std.ctype;
 import std.string;
 
-class Wrapper(T, P) {
-  T delegate(P) fDelegate;
-  T function(P) fFunction;
-  public this(T delegate(P) callback) {
-    assert(callback != null);
-    fDelegate = callback;
+/*
+template Test2(T2 ...) {
+  void print() {
+    writeln(T2);
   }
-  public this(T function(P) callback) {
-    assert(callback != null);
-    fFunction = callback;
+  void print2(T2 t) {
+    writefln(t);
   }
-  T call(P p) {
-    if (fDelegate != null) {
-       return fDelegate(p);
-    } else if (fFunction != null) {
+}
+  unittest {
+    Test2!(1, 2, 3).print();
+    Test2!(int, int ,int).print2(4, 5,  6);
+  }
+
+*/
+template Write(A ...)
+{
+    void write(A a)
+    {
+      writeln("in write");
+      writeln(a);
+      myfunc(a);
+    }
+    void myfunc(int a, int b) {
+      writeln("with 2 parameters");
+    }
+    void myfunc() {
+      writeln("without parameters");
+    }
+}
+unittest {
+  Write!(int, int).write(1, 2);
+  Write!().write();
+}
+
+class Wrapper(R, P ...) {
+  R delegate(P) fDelegate;
+  R function(P) fFunction;
+  this(R delegate(P) del) {
+    assert(del !is null);
+    fDelegate = del;
+  }
+  this(R function(P) fun) {
+    assert(fun !is null);
+    fFunction = fun;
+  }
+  R call(P p) {
+    if (fDelegate !is null) {
+      return fDelegate(p);
+    } else {
       return fFunction(p);
     }
-    return null;
   }
 }
 
+unittest {
+  class Test {
+    void d1(int a) {
+      writefln("delegate 1 %d", a);
+    }
+    int d2() {
+      writefln("delegate 2");
+      return 2;
+    }
+  }
+  Test t = new Test;
+  Wrapper!(int) w = new Wrapper!(int)(&t.d2);
+  assert(w.call() == 2);
+  Wrapper!(void, int) w2 = new Wrapper!(void, int)(&t.d1);
+  w2.call(3);
+}
 abstract class Parser {
   private string fRest = null;
   Wrapper!(Object, Parser) fCallable = null;
@@ -464,26 +514,21 @@ class Repeat : Parser {
 
 
 class LazyParser : Parser {
-  Parser delegate() fDelegate;
-  Parser function() fFunction;
+  Wrapper!(Parser) fWrapper;
   Parser fParser;
 
   this(Parser delegate() parser) {
     assert(parser != null);
-    fDelegate = parser;
+    fWrapper = new Wrapper!(Parser)(parser);
   }
 
   this(Parser function() parser) {
     assert(parser != null);
-    fFunction = parser;
+    fWrapper = new Wrapper!(Parser)(parser);
   }
 
   Parser internalParse(string s) {
-    if (fDelegate != null) {
-      fParser = fDelegate();
-    } else if (fFunction != null) {
-      fParser = fFunction();
-    }
+    fParser = fWrapper.call();
     return fParser.internalParse(s);
   }
 
@@ -495,9 +540,7 @@ class LazyParser : Parser {
     class Endless {
       // endless -> epsilon | "a" endless
       Parser lazyEndless() {
-        return new LazyParser(delegate Parser() {
-          return endless;
-        });
+        return new LazyParser({return endless;});
       }
       Parser endless() {
         return new Or(new And(match("a"), lazyEndless()), new Epsilon());
@@ -517,9 +560,7 @@ class LazyParser : Parser {
 
   static class ExprParser {
     Parser lazyExpr() {
-      return new LazyParser(delegate Parser() {
-        return expr;
-      });
+      return new LazyParser({return expr;});
     }
     Parser expr() {
       return new And(term(), new Repeat(new And(new Matcher("+"), term())));
