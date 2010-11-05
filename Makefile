@@ -1,10 +1,8 @@
 all: zend
 
-%.o: %.d
-	dmd -unittest -c $<
-
-zend: zend.o
-	dmd $^
+zend: zend.d pc/parser.d
+	dmd -unittest zend.d pc/parser.d
 
 clean:
-	rm -rf *.o main
+	find . -name "*.o" -delete
+	rm -rf zend
