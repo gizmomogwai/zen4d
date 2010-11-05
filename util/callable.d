@@ -11,7 +11,8 @@ class Callable(R, P ...) {
     assert(fun !is null);
     fFunction = fun;
   }
-  R call(P p) {
+
+  R opCall(P p) {
     if (fDelegate !is null) {
       return fDelegate(p);
     } else {
@@ -30,7 +31,7 @@ unittest {
   }
   Test t = new Test;
   Callable!(int) w = new Callable!(int)(&t.d2);
-  assert(w.call() == 2);
+  assert(w() == 2);
   Callable!(void, int) w2 = new Callable!(void, int)(&t.d1);
-  w2.call(3);
+  w2(3);
 }

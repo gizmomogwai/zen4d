@@ -12,7 +12,7 @@ abstract class Parser {
   Object parse(string s) {
     auto res = internalParse(s);
     if (fCallable !is null) {
-      return fCallable.call(res);
+      return fCallable(res);
     }
     return res;
   }
@@ -444,21 +444,21 @@ class Repeat : Parser {
 
 
 class LazyParser : Parser {
-  Callable!(Parser) fWrapper;
+  Callable!(Parser) fCallable;
   Parser fParser;
 
   this(Parser delegate() parser) {
     assert(parser != null);
-    fWrapper = new Callable!(Parser)(parser);
+    fCallable = new Callable!(Parser)(parser);
   }
 
   this(Parser function() parser) {
     assert(parser != null);
-    fWrapper = new Callable!(Parser)(parser);
+    fCallable = new Callable!(Parser)(parser);
   }
 
   Parser internalParse(string s) {
-    fParser = fWrapper.call();
+    fParser = fCallable();
     return fParser.internalParse(s);
   }
 
