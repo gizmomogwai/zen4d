@@ -1,3 +1,4 @@
+/+
 import pc.parser;
 import std.stdio;
 
@@ -74,7 +75,7 @@ class ZendParser : Parser {
   }
 
 }
-
++/
 int main(string[] args) {
   auto input = args[1];
   return 0;

@@ -1,23 +1,37 @@
 module util.callable;
 
+/**
+ * simple class to handle functions and delegates in the same way.
+ */
 class Callable(R, P ...) {
+
+  /// the delegate to call
   R delegate(P) fDelegate;
+
+  /// the function to call
   R function(P) fFunction;
+
+  /**
+   * constructs with delegate
+   */
   this(R delegate(P) del) {
     assert(del !is null);
     fDelegate = del;
   }
+
+  /**
+   * constructs with function
+   */
   this(R function(P) fun) {
     assert(fun !is null);
     fFunction = fun;
   }
 
+  /**
+   * the opcall operator to call the delegate or function.
+   */
   R opCall(P p) {
-    if (fDelegate !is null) {
-      return fDelegate(p);
-    } else {
-      return fFunction(p);
-    }
+    return fDelegate ? fDelegate(p) : fFunction(p);
   }
 }
 

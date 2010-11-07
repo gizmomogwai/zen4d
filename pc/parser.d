@@ -6,141 +6,211 @@ import std.ctype;
 import std.string;
 import util.callable;
 
+template Test(T) {
+  T instanceof(Object o) {
+    T res = cast(T)(o);
+    if (res is null) {
+      throw new Exception("typecast failed");
+    } else {
+      return res;
+    }
+  }
+}
+
+unittest {
+  class A {
+  }
+
+  class B : A {
+  }
+
+  class C {
+  }
+
+  A a = new A;
+  B b = new B;
+  C c = new C;
+
+  Object o = Test!(A).instanceof(a);
+  o = Test!(B).instanceof(b);
+  o = Test!(A).instanceof(b);
+  o = Test!(C).instanceof(c);
+}
+
+class String {
+  string fString;
+  this(string s) {
+    fString = s;
+  }
+  string toString() {
+    return fString;
+  }
+}
+
 abstract class Parser {
-  private string fRest = null;
-  Callable!(Object, Parser) fCallable = null;
-  Object parse(string s) {
-    auto res = internalParse(s);
-    if (fCallable !is null) {
-      return fCallable(res);
+  Callable!(Object[], Object[]) fCallable = null;
+
+  static class Result {
+  }
+
+  static class Success : Result {
+    string fRest;
+    Object[] fResults;
+    this(string rest, Object[] result) {
+      fRest = rest;
+      fResults = result;
     }
-    return res;
-  }
-
-  abstract Parser internalParse(string s);
-
-  string print(int indent = 0) {
-    return "nyi";
-  }
-
-  string printIndent(int indent) {
-    string res;
-    for (int i=0; i<indent; i++) {
-      res ~= " ";
+    this(string rest, Object o) {
+      fRest = rest;
+      fResults ~= o;
     }
-    return res;
+    @property string rest() {
+      return fRest;
+    }
+
+    @property string rest(string rest) {
+      return fRest = rest;
+    }
+    @property Object[] results() {
+      return fResults;
+    }
+
   }
 
-  @property string rest() {
-    return fRest;
+  static class Error : Result {
+    string fMessage;
+    this(string message) {
+      fMessage = message;
+    }
   }
 
-  @property string rest(string rest) {
-    return fRest = rest;
+  Result parseAll(string s) {
+    auto res = parse(s);
+    if (typeid(res) == typeid(Success)) {
+      auto success = cast(Success)(res);
+      if ((success.rest is null) || (success.rest.length == 0)) {
+        return res;
+      } else {
+        return new Error("string not completely consumed: " ~ success.rest);
+      }
+    } else {
+      return res;
+    }
+  }
+
+  Result parse(string s) {
+    auto res = parse(s);
+    return transform(res);
+  }
+
+  Parser opBinary(string op)(Object delegate(Object[] objects) toCall) if (op == "^^") {
+    return setCallback(toCall);
+  }
+
+  Parser opBinary(string op)(Object function(Object[] objects) toCall) if (op == "^^") {
+    return setCallback(toCall);
+  }
+
+  Parser setCallback(Object[] function(Object[] objects) tocall) {
+    fCallable = new Callable!(Object[], Object[])(tocall);
+    return this;
+  }
+  Parser setCallback(Object[] delegate(Object[] objects) tocall) {
+    fCallable = new Callable!(Object[], Object[])(tocall);
+    return this;
+  }
+
+  Result transform(Result result) {
+    if (typeid(result) == typeid(Success)) {
+      auto success = cast(Success)(result);
+      return fCallable ? new Success(success.rest, fCallable(success.results)) : result;
+    } else {
+      return result;
+    }
   }
 
   static class Matcher : Parser {
     string fExpected;
+
     this(string expected) {
       fExpected = expected;
     }
-    Parser internalParse(string s) {
+
+    Result parse(string s) {
       if (s.indexOf(fExpected) == 0) {
-        rest = s[fExpected.length..$];
-        return this;
+        string rest = s[fExpected.length..$];
+        return transform(new Success(rest, new String(fExpected)));
       } else {
-        return null;
+        return new Error("Expected: '" ~ fExpected ~ "' but got '" ~ s ~ "'");
       }
     }
 
-    string print(int indent) {
-      return printIndent(indent) ~ "Matcher(" ~ fExpected ~ ")";
-    }
-
     unittest {
-      auto parser = Parser.match("test");
-      Parser res = cast(Parser)(parser.parse("test"));
-      assert(res == parser);
-      assert(res.rest == null);
-    }
-
-    unittest {
-      auto parser = Parser.match("test");
-      auto res = parser.parse("abc");
-      assert(res is null);
-    }
-
-    unittest {
-      auto parser = Parser.match("test");
-      Parser res = cast(Parser)(parser.parse("test2"));
+      auto parser = new Matcher("test");
+      Success res = cast(Success)(parser.parse("test"));
       assert(res !is null);
-      assert(res.rest == "2");
+      assert(res.rest is null || res.rest.length == 0);
     }
-  }
 
-  static Parser match(string s) {
-    return new Matcher(s);
-  }
+    unittest {
+      auto parser = new Matcher("test");
+      auto res = cast(Error)(parser.parse("abc"));
+      assert(res !is null);
+    }
 
-  Parser opBinary(string op)(Parser rhs) if (op == "|") {
-    return new Or(this, rhs);
-  }
+    unittest {
+      auto parser = new Matcher("test");
+      Success suc = cast(Success)(parser.parse("test2"));
+      assert(suc !is null);
+      assert(suc.rest == "2");
+      Error err = cast(Error)(parser.parseAll("test2"));
+      assert(err !is null);
+    }
 
-  Parser opBinary(string op)(Parser rhs) if (op == "~") {
-    return new And(this, rhs);
-  }
+    unittest {
+      auto parser = match("test").setCallback( (Object[] objects) { auto res = objects; if (objects[0].toString() == "test") { res[0] = new String("super");} return objects; });
+      Success suc = cast(Success)(parser.parse("test"));
+      assert(suc.results[0].toString() == "super");
+    }
 
-  unittest {
-    auto parser = match("a") | match("b");
-    auto res = parser.parse("a");
-    assert(res !is null);
-    res = parser.parse("b");
-    assert(res !is null);
-    res = parser.parse("c");
-    assert(res is null);
   }
 
   static class Or : Parser {
     Parser[] fParsers;
-    Parser res;
 
     this(Parser[] parsers ...) {
-      fParsers = parsers.dup;
+      fParsers = parsers;
     }
 
-    Parser internalParse(string s) {
+    Result parse(string s) {
       foreach (parser; fParsers) {
-        res = parser.internalParse(s);
-        if (res !is null) {
-          return res;
+        auto res = parser.parse(s);
+	if (typeid(res) == typeid(Success)) {
+	  return res;
         }
       }
-      return null;
-    }
-
-    string print(int indent) {
-      return printIndent(indent) ~ "OR(\n" ~ res.print(indent+2) ~ "\n" ~ printIndent(indent) ~ ")";
+      return new Error("or did not match");
     }
 
     unittest {
       auto parser = new Or(match("ab"), match("cd"));
-      auto res = parser.parse("ab");
+      Success res = cast(Success)(parser.parse("ab"));
       assert(res !is null);
     }
 
     unittest {
       auto parser = new Or(new Matcher("ab"), new Matcher("cd"));
-      Parser res = cast(Parser)(parser.parse("cde"));
+      Success res = cast(Success)(parser.parse("cde"));
       assert(res !is null);
       assert(res.rest == "e");
     }
     unittest {
       auto parser = new Or(new Matcher("ab"), new Matcher("cd"));
-      auto res = parser.parse("ef");
-      assert(res is null);
+      Error res = cast(Error)(parser.parse("ef"));
+      assert(res !is null);
     }
   }
-
+/+
   static class And : Parser {
     Parser[] fParsers;
     this(Parser[] parsers ...) {
@@ -297,8 +367,6 @@ class AlnumParser : public Parser {
   }
 }
 
-
-
 class Opt : Parser {
   Parser fParser;
   Parser fRes;
@@ -376,7 +444,6 @@ class Float : Parser {
     assert(res !is null);
   }
 }
-
 
 class None : Parser {
   Parser internalParse(string s) {
@@ -470,7 +537,7 @@ class LazyParser : Parser {
     class Endless {
       // endless -> epsilon | "a" endless
       Parser lazyEndless() {
-        return new LazyParser({return endless;});
+        return new LazyParser( {return endless;});
       }
       Parser endless() {
         return new Or(new And(match("a"), lazyEndless()), new Epsilon());
@@ -490,16 +557,19 @@ class LazyParser : Parser {
 
   static class ExprParser {
     Parser lazyExpr() {
-      return new LazyParser({return expr;});
+      return new LazyParser( {return expr;} );
     }
     Parser expr() {
-      return new And(term(), new Repeat(new And(new Matcher("+"), term())));
+      auto add = term() ~ match("+") ~ term();
+      return add | term();
     }
     Parser term() {
-      return new And(factor(), new Repeat(new And(new Matcher("*"), factor())));
+      auto mult = factor() ~ match("*") ~ factor();
+      return mult | factor();
     }
     Parser factor() {
-      return new Or(new Number, new And(new Matcher("("), lazyExpr(), new Matcher(")")));
+      auto exprWithParens = match("(") ~ lazyExpr() ~ match(")");
+      return new Number | exprWithParens;
     }
   }
 
@@ -523,4 +593,43 @@ class LazyParser : Parser {
     auto res = parser.parse("a");
     assert(res !is null);
   }
++/
+
+  /**
+   * convinient short for new Matcher()
+   */
+  static Parser match(string s) {
+    return new Matcher(s);
+  }
+
+  unittest {
+    auto parser = match("test");
+    Success suc = cast(Success)(parser.parseAll("test"));
+    assert(suc !is null);
+  }
+/+
+  Parser opBinary(string op)(Parser rhs) if (op == "|") {
+    return new Or(this, rhs);
+  }
+
+  Parser opBinary(string op)(Parser rhs) if (op == "~") {
+    return new And(this, rhs);
+  }
+
+  /**
+   * test
+   */
+  unittest {
+    auto parser = match("a") | match("b");
+    auto res = parser.parse("a");
+    assert(res !is null);
+    res = parser.parse("b");
+    assert(res !is null);
+    res = parser.parse("c");
+    assert(res is null);
+  }
+
++/
+
+
 }
