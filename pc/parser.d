@@ -103,11 +103,11 @@ abstract class Parser {
     return transform(res);
   }
 
-  Parser opBinary(string op)(Object delegate(Object[] objects) toCall) if (op == "^^") {
+  Parser opBinary(string op)(Object[] delegate(Object[] objects) toCall) if (op == "^^") {
     return setCallback(toCall);
   }
 
-  Parser opBinary(string op)(Object function(Object[] objects) toCall) if (op == "^^") {
+  Parser opBinary(string op)(Object[] function(Object[] objects) toCall) if (op == "^^") {
     return setCallback(toCall);
   }
 
@@ -168,7 +168,13 @@ abstract class Parser {
     }
 
     unittest {
-      auto parser = match("test").setCallback( (Object[] objects) { auto res = objects; if (objects[0].toString() == "test") { res[0] = new String("super");} return objects; });
+      auto parser = match("test") ^^ (Object[] objects) {
+        auto res = objects;
+        if (objects[0].toString() == "test") {
+          res[0] = new String("super");
+        }
+        return objects;
+      };
       Success suc = cast(Success)(parser.parse("test"));
       assert(suc.results[0].toString() == "super");
     }
@@ -185,8 +191,8 @@ abstract class Parser {
     Result parse(string s) {
       foreach (parser; fParsers) {
         auto res = parser.parse(s);
-	if (typeid(res) == typeid(Success)) {
-	  return res;
+        if (typeid(res) == typeid(Success)) {
+          return res;
         }
       }
       return new Error("or did not match");
@@ -210,7 +216,7 @@ abstract class Parser {
       assert(res !is null);
     }
   }
-/+
+  /+
   static class And : Parser {
     Parser[] fParsers;
     this(Parser[] parsers ...) {
@@ -551,9 +557,9 @@ class LazyParser : Parser {
     assert(res is null);
   }
 
-  // expr -> term { + term }
-  // term -> factor { * factor }
-  // factor -> number | ( expr )
+// expr -> term { + term }
+// term -> factor { * factor }
+// factor -> number | ( expr )
 
   static class ExprParser {
     Parser lazyExpr() {
@@ -593,7 +599,7 @@ class LazyParser : Parser {
     auto res = parser.parse("a");
     assert(res !is null);
   }
-+/
+  +/
 
   /**
    * convinient short for new Matcher()
@@ -607,7 +613,7 @@ class LazyParser : Parser {
     Success suc = cast(Success)(parser.parseAll("test"));
     assert(suc !is null);
   }
-/+
+  /+
   Parser opBinary(string op)(Parser rhs) if (op == "|") {
     return new Or(this, rhs);
   }
@@ -629,7 +635,7 @@ class LazyParser : Parser {
     assert(res is null);
   }
 
-+/
+  +/
 
 
 }
