@@ -4,8 +4,10 @@ import std.stdio;
 import std.array;
 import std.ctype;
 import std.string;
+import std.conv;
 import util.callable;
-import std.regexp;
+import std.regex;
+import std.variant;
 
 class String {
   string fString;
@@ -20,22 +22,23 @@ class String {
   }
 }
 
-abstract class Parser {
-  Callable!(Object[], Object[]) fCallable = null;
+class Parser {
+  Callable!(Variant[], Variant[]) fCallable = null;
 
   static class Result {
   }
 
+  static success(T...)(string rest, T args) {
+    return new Success(rest, variantArray(args));
+  }
+
+
   static class Success : Result {
     string fRest;
-    Object[] fResults;
-    this(string rest, Object[] result) {
+    Variant[] fResults;
+    this(string rest, Variant[] result) {
       fRest = rest;
       fResults = result;
-    }
-    this(string rest, Object o) {
-      fRest = rest;
-      fResults ~= o;
     }
     @property string rest() {
       return fRest;
@@ -44,7 +47,7 @@ abstract class Parser {
     @property string rest(string rest) {
       return fRest = rest;
     }
-    @property Object[] results() {
+    @property Variant[] results() {
       return fResults;
     }
 
@@ -78,20 +81,20 @@ abstract class Parser {
     throw new Exception("must be implemented in childs");
   }
 
-  Parser opBinary(string op)(Object[] delegate(Object[] objects) toCall) if (op == "^^") {
+  Parser opBinary(string op)(Variant[] delegate(Variant[] objects) toCall) if (op == "^^") {
     return setCallback(toCall);
   }
 
-  Parser opBinary(string op)(Object[] function(Object[] objects) toCall) if (op == "^^") {
+  Parser opBinary(string op)(Variant[] function(Variant[] objects) toCall) if (op == "^^") {
     return setCallback(toCall);
   }
 
-  Parser setCallback(Object[] function(Object[] objects) tocall) {
-    fCallable = new Callable!(Object[], Object[])(tocall);
+  Parser setCallback(Variant[] function(Variant[] objects) tocall) {
+    fCallable = new Callable!(Variant[], Variant[])(tocall);
     return this;
   }
-  Parser setCallback(Object[] delegate(Object[] objects) tocall) {
-    fCallable = new Callable!(Object[], Object[])(tocall);
+  Parser setCallback(Variant[] delegate(Variant[] objects) tocall) {
+    fCallable = new Callable!(Variant[], Variant[])(tocall);
     return this;
   }
 
@@ -114,7 +117,7 @@ abstract class Parser {
     Result parse(string s) {
       if (s.indexOf(fExpected) == 0) {
         string rest = s[fExpected.length..$];
-        return transform(new Success(rest, new String(fExpected)));
+        return transform(success(rest, fExpected));
       } else {
         return new Error("Expected: '" ~ fExpected ~ "' but got '" ~ s ~ "'");
       }
@@ -122,7 +125,7 @@ abstract class Parser {
 
     unittest {
       auto parser = new Matcher("test");
-      Success res = cast(Success)(parser.parse("test"));
+      auto res = cast(Success)(parser.parse("test"));
       assert(res !is null);
       assert(res.rest is null || res.rest.length == 0);
     }
@@ -135,23 +138,23 @@ abstract class Parser {
 
     unittest {
       auto parser = new Matcher("test");
-      Success suc = cast(Success)(parser.parse("test2"));
+      auto suc = cast(Success)(parser.parse("test2"));
       assert(suc !is null);
       assert(suc.rest == "2");
-      Error err = cast(Error)(parser.parseAll("test2"));
+      auto err = cast(Error)(parser.parseAll("test2"));
       assert(err !is null);
     }
 
     unittest {
-      auto parser = match("test") ^^ (Object[] objects) {
+      auto parser = match("test") ^^ (Variant[] objects) {
         auto res = objects;
-        if (objects[0].toString() == "String 'test'") {
-          res[0] = new String("super");
+        if (objects[0] == "test") {
+          res[0] = "super";
         }
         return objects;
       };
-      Success suc = cast(Success)(parser.parse("test"));
-      assert(suc.results[0].toString() == "String 'super'");
+      auto suc = cast(Success)(parser.parse("test"));
+      assert(suc.results[0] == "super");
     }
 
   }
@@ -175,13 +178,13 @@ abstract class Parser {
 
     unittest {
       auto parser = new Or(match("ab"), match("cd"));
-      Success res = cast(Success)(parser.parse("ab"));
+      auto res = cast(Success)(parser.parse("ab"));
       assert(res !is null);
     }
 
     unittest {
       auto parser = new Or(new Matcher("ab"), new Matcher("cd"));
-      Success res = cast(Success)(parser.parse("cde"));
+      auto res = cast(Success)(parser.parse("cde"));
       assert(res !is null);
       assert(res.rest == "e");
     }
@@ -189,6 +192,19 @@ abstract class Parser {
       auto parser = new Or(new Matcher("ab"), new Matcher("cd"));
       Error res = cast(Error)(parser.parse("ef"));
       assert(res !is null);
+    }
+    unittest {
+      auto parser = new Or(new Matcher("ab"), new Matcher("cd"));
+      parser ^^ (Variant[] input) {
+        if (input[0] == "ab") {
+          input[0] = "super";
+        }
+        return input;
+      };
+      auto suc = cast(Success)(parser.parse("ab"));
+      assert(suc.results[0] == "super");
+      suc = cast(Success)(parser.parse("cd"));
+      assert(suc.results[0] == "cd");
     }
   }
 
@@ -199,12 +215,12 @@ abstract class Parser {
     }
 
     Result parse(string s) {
-      auto resultObjects = appender!(Object[])();
+      auto resultObjects = appender!(Variant[])();
       string h = s;
       foreach (parser; fParsers) {
         Result res = parser.parse(h);
-        Success suc = cast(Success)(res);
-        Error err = cast(Error)(res);
+        auto suc = cast(Success)(res);
+        auto err = cast(Error)(res);
         if (suc !is null) {
           h = suc.rest;
           resultObjects.put(suc.results);
@@ -237,20 +253,23 @@ abstract class Parser {
 
     unittest {
       auto parser = new And(match("a"), match("b"));
-      parser ^^ (Object[] result) {
-        Object[] res;
+      parser ^^ (Variant[] result) {
         string totalString;
-        foreach (Object o ; result) {
-          String s = cast(String)(o);
-          totalString ~= s.get();
+        foreach (Variant o ; result) {
+          if (o.type == typeid(string)) {
+            totalString ~= o.get!(string);
+          }
         }
-        res ~= new String(totalString);
+
+        Variant[] res;
+        Variant v = totalString;
+        res ~= v;
         return res;
       };
 
-      Success suc = cast(Success)(parser.parse("ab"));
+      auto suc = cast(Success)(parser.parse("ab"));
       assert(suc.results.length == 1);
-      assert((cast(String)(suc.results[0])).get() == "ab");
+      assert(suc.results[0] == "ab");
     }
   }
 
@@ -265,8 +284,7 @@ abstract class Parser {
     Result parse(string s) {
       auto res = fParser.parse(s);
       if (cast(Error)(res) !is null) {
-        Object[] results;
-        return new Success(s, results);
+        return success(s);
       } else {
         return res;
       }
@@ -276,6 +294,8 @@ abstract class Parser {
       auto opt = new Opt(abc);
       auto res = cast(Success)(opt.parse("abc"));
       assert(res !is null);
+      assert(res.results.length == 1);
+      assert(res.results[0] == "abc");
       assert(res.rest.length == 0);
     }
     unittest {
@@ -283,6 +303,7 @@ abstract class Parser {
       auto opt = new Opt(abc);
       auto res = cast(Success)(opt.parse("efg"));
       assert(res !is null);
+      assert(res.results.length == 0);
       assert(res.rest == "efg");
     }
   }
@@ -295,11 +316,11 @@ abstract class Parser {
     }
 
     Result parse(string s) {
-      auto results = appender!(Object[])();
+      auto results = appender!(Variant[])();
       auto rest = s;
       while (true) {
         auto res = fToRepeat.parse(rest);
-        Success suc = cast(Success)(res);
+        auto suc = cast(Success)(res);
         if (suc !is null) {
           rest = suc.rest;
           results.put(suc.results);
@@ -307,65 +328,92 @@ abstract class Parser {
           break;
         }
       }
-      return new Success(rest, results.data);
+      return success(rest, results.data);
     }
 
     unittest {
       auto parser = new Repeat(new Matcher("a"));
-      Success res = cast(Success)(parser.parse("aa"));
+      auto res = cast(Success)(parser.parse("aa"));
       assert(res !is null);
       assert(res.rest == "");
     }
     unittest {
       auto parser = new Repeat(new Matcher("a"));
-      Success res = cast(Success)(parser.parse("b"));
+      auto res = cast(Success)(parser.parse("b"));
       assert(res !is null);
       assert(res.rest == "b");
     }
     unittest {
       auto parser = new Repeat(new Matcher("a"));
-      Success res = cast(Success)(parser.parse("ab"));
+      auto res = cast(Success)(parser.parse("ab"));
       assert(res !is null);
       assert(res.rest == "b");
     }
 
     unittest {
-      auto parser = new Repeat(match("+") ~ match("-"));
-      Success res = cast(Success)(parser.parse("+-+-+"));
+      auto parser = new Repeat(new And(match("+"), match("-")));
+      auto res = cast(Success)(parser.parse("+-+-+"));
       assert(res !is null);
       assert(res.rest == "+");
     }
   }
 
-  static class RegexpParser : Parser {
-    string fRegexp;
-    this(string regexp) {
-      fRegexp = regexp;
+  unittest {
+    auto text = "abc";
+    auto m1 = std.regex.match(text, "d");
+    assert(m1.empty());
+    m1 = std.regex.match(text, "a");
+    assert(!m1.empty());
+  }
+
+  static class RegexParser : Parser {
+    string fRegex;
+    this(string regex) {
+      fRegex = regex;
     }
 
     Result parse(string s) {
-      auto res = std.regexp.search(s, fRegexp);
-      if (res is null) {
-        return new Error("did not match " ~ fRegexp);
+      auto res = std.regex.match(s, regex(fRegex));
+      if (res.empty()) {
+        return new Error("did not match " ~ fRegex);
       } else if (res.pre.length > 0) {
-        return new Error("did not match " ~ fRegexp);
+        return new Error("did not match " ~ fRegex);
       } else {
-        return new Success(res.post, new String(res[0]));
+        return transform(success(res.post, res.hit));
       }
     }
     unittest {
-      auto parser = new RegexpParser("abc");
+      auto parser = new RegexParser("abc");
       Success suc = cast(Success)(parser.parse("abcd"));
       assert(suc !is null);
       assert(suc.rest == "d");
     }
     unittest {
-      auto parser = new RegexpParser("abc");
+      auto parser = new RegexParser("abc");
       Error err = cast(Error)(parser.parse("babc"));
       assert(err !is null);
     }
   }
-
+  static class Number : RegexParser {
+    this() {
+      super(r"[-+]?[0-9]*\.?[0-9]+");
+    }
+    unittest {
+      Parser parser = new Number;
+      parser = parser ^^ (Variant[] input) {
+        Variant[] output;
+        foreach (Variant o ; input) {
+          string s = o.get!(string);
+          Variant v = std.conv.parse!(double, string)(s);
+          output ~= v;
+        }
+        return output;
+      };
+      assert(parser !is null);
+      Success suc = cast(Success)(parser.parse("123.123"));
+      assert(suc !is null);
+    }
+  }
 
   static class LazyParser : Parser {
     Callable!(Parser) fCallable;
@@ -403,52 +451,42 @@ abstract class Parser {
       assert(suc !is null);
       assert(suc.rest == "b");
     }
+  }
 
 // expr -> term { + term }
 // term -> factor { * factor }
 // factor -> number | ( expr )
-    /*
-        static class ExprParser {
-          Parser lazyExpr() {
-            return new LazyParser( &expr; );
-          }
-          Parser expr() {
-            auto add = term() ~ match("+") ~ term();
-            return add | term();
-          }
-          Parser term() {
-            auto mult = factor() ~ match("*") ~ factor();
-            return mult | factor();
-          }
-          Parser factor() {
-            auto exprWithParens = match("(") ~ lazyExpr() ~ match(")");
-            return new Number | exprWithParens;
-          }
-        }
+  static class ExprParser {
+    Parser lazyExpr() {
+      return new LazyParser( {return expr();} );
+    }
+    Parser expr() {
+      auto add = term() ~ match("+") ~ term();
+      return add | term(); 
+    }
+    Parser term() {
+      auto mult = factor() ~ match("*") ~ factor();
+      return mult | factor();
+    }
+    Parser factor() {
+      auto exprWithParens = match("(") ~ lazyExpr() ~ match(")");
+      return new Number | exprWithParens;
+    }
+  }
 
-        unittest {
-          auto parser = new ExprParser;
-          auto p = parser.expr();
-          auto res = p.parse("1+2*3");
-          assert(res !is null);
-        }
-        unittest {
-          auto parser = new ExprParser;
-          auto p = parser.expr();
-          auto res = p.parse("1*2+3");
-          assert(res !is null);
-        }
-        unittest {
-          static Parser help() {
-            return new Matcher("a");
-          }
-          auto parser = new LazyParser(&help);
-          auto res = parser.parse("a");
-          assert(res !is null);
-        }
 
-    */
+  unittest {
+    auto parser = new ExprParser;
+    auto p = parser.expr();
+    auto res = cast(Success)(p.parse("1+2*3"));
+    assert(res !is null);
+  }
 
+  unittest {
+    auto parser = new ExprParser;
+    auto p = parser.expr();
+    auto res = cast(Success)(p.parse("1*2+3"));
+    assert(res !is null);
   }
 
   static Parser match(string s) {
