@@ -1,38 +1,45 @@
-/+
-import pc.parser;
 import std.stdio;
 
-unittest {
-  class Help {
-    int delegate(string) fDg;
-    this(int delegate(string)dg) {
-      fDg = dg;
-    }
-    void run() {
-      writeln(fDg("1"));
+import pc.parser;
+import std.variant;
+import std.array;
+
+
+class Node {
+  Node[] fChilds;
+  string fName;
+  this(string name) {
+    fName = name;
+  }
+  void addChild(Node n) {
+    fChilds ~= n;
+  }
+  void printIndent(int nrOfIndents) {
+    for (int i=0; i<nrOfIndents; i++) {
+      write(" ");
     }
   }
-
-  class Test {
-    this() {
-      Help h = new Help(&blub);
+  void print(int indent=0) {
+    printIndent(indent);
+    write("<" ~ fName ~ ">\n");
+    foreach (Node n ; fChilds) {
+      n.print(indent+2);
     }
-    int blub(string s) {
-      writeln("using blub");
-      return 1;
-    }
+    printIndent(indent);write("</" ~ fName ~ ">\n");
+  }
+  string toString() {
+    return "Node " ~ fName;
   }
 }
 
-class ZendParser : Parser {
 
-  //           zen -> nodeWithChild | nodeWithSibbling | node epsilon
+  //           zen -> nodeWithChild | nodeWithSibbling | node
   // nodeWithChild -> node > zen
   // nodeWithSibbling -> node + zen
   // node -> alnum | ( zen )
 
   Parser lazyZen() {
-    return new LazyParser(&zen);
+    return new Parser.LazyParser( &zen );
   }
 
   Parser zen() {
@@ -40,33 +47,84 @@ class ZendParser : Parser {
   }
 
   Parser node() {
-    return new AlnumParser | (match("(") ~ lazyZen() ~ match(")"));
+    auto alnum =  new Parser.AlnumParser;
+    alnum ^^ (Variant[] input) {
+      return variantArray(new Node(input[0].get!(string)));
+    };
+    return alnum | (Parser.match("(") ~ lazyZen() ~ Parser.match(")")) ^^ (Variant[] input) {
+      auto realValues = input[1..$-1];
+      return realValues;
+    };
   }
   Parser nodeWithChild() {
-    return node() ~ match(">") ~ lazyZen();
+    return (node() ~ Parser.match(">") ~ lazyZen()) ^^ (Variant[] input) {
+
+      void prepareParent(Node parent, Variant v) {
+        if (v.type == typeid(Node)) {
+          parent.addChild(v.get!(Node));
+        } else {
+          foreach (Node n ; v.get!(Node[])) {
+	    parent.addChild(n);
+          }
+        }
+      }
+
+      auto parents = input[0];
+      auto childs = input[2];
+      if (parents.type == typeid(Node)) {
+      	 prepareParent(parents.get!(Node), childs);
+      } else if (parents.type == typeid(Node[])) {
+         foreach(Node n ; parents.get!(Node[])) {
+	   prepareParent(n, childs);
+	 }
+      }
+      return variantArray(parents);
+    };
   }
+
   Parser nodeWithSibbling() {
-    return node() ~ match("+") ~ lazyZen();
+    return (node() ~ Parser.match("+") ~ lazyZen()) ^^ (Variant[] input) {
+      Node[] r;
+      foreach (Variant v ; input) {
+        if (v.type == typeid(Node)) {
+	  r ~= v.get!(Node);
+	} else if (v.type == typeid(Node[])) {
+	  r ~= v.get!(Node[]);
+	}
+      }
+      return variantArray(r);
+    };
   }
 
-  Parser internalParse(string s) {
-    return zen().internalParse(s);
-  }
-  string print(int indent) {
-    return "zen";
-  }
+void printResult(Variant r) {
+      if (r.type == typeid(Node)) {
+	r.get!(Node).print();
+      } else if (r.type == typeid(Node[])) {
+	foreach (Node n ; r.get!(Node[])) {
+	  n.print();
+	}
+      } else {
+        writeln("unknown node structure");
+      }
+}
 
-  unittest {
     Object check(string s) {
-      writeln("checking " ~ s);
-      auto parser = new ZendParser;
-      auto res = parser.parse(s);
+      writefln("checking %s:", s);
+      auto res = cast(Parser.Success)(zen().parse(s));
+      if (res is null) {
+      	 writeln("could not parse: " ~ s);
+	 return null;
+      }
+      Variant r = res.results[0];
+      printResult(r);
       return res;
     }
+  unittest {
     assert(check("a") !is null);
     assert(check("a>a") !is null);
     assert(check("a+a") !is null);
     assert(check("a>(a+b)") !is null);
+    assert(check("(a+b)>(a+b)") !is null);
     assert(check("a>b+c+d") !is null);
     assert(check("a>b>(c>d)") !is null);
     assert(check("a+(b>c)+c") !is null);
@@ -74,9 +132,13 @@ class ZendParser : Parser {
     assert(check("a>b>c>d>e>f") !is null);
   }
 
-}
-+/
 int main(string[] args) {
-//  auto input = args[1];
+  if (args.length > 0) {
+    foreach (string input ; args) {
+      check(input);
+//      printResult((cast(Parser.Success)(zen().parse(input))).results[0]);
+    }
+  }
+  auto input = args[1];
   return 0;
 }

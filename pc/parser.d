@@ -397,10 +397,7 @@ class Parser {
   static class Number : RegexParser {
     this() {
       super(r"[-+]?[0-9]*\.?[0-9]+");
-    }
-    unittest {
-      Parser parser = new Number;
-      parser = parser ^^ (Variant[] input) {
+      this ^^ (Variant[] input) {
         Variant[] output;
         foreach (Variant o ; input) {
           string s = o.get!(string);
@@ -409,12 +406,25 @@ class Parser {
         }
         return output;
       };
+    }
+    unittest {
+      Parser parser = new Number;
       assert(parser !is null);
       Success suc = cast(Success)(parser.parse("123.123"));
       assert(suc !is null);
     }
   }
 
+  static class AlnumParser : RegexParser {
+    this() {
+      super(r"\w[\w\d]*");
+    }
+  }
+  unittest {
+    auto parser = new AlnumParser;
+    Success suc = cast(Success)(parser.parse("a1234"));
+    assert(suc !is null);
+  }
   static class LazyParser : Parser {
     Callable!(Parser) fCallable;
 
@@ -461,11 +471,15 @@ class Parser {
       return new LazyParser( {return expr();} );
     }
     Parser expr() {
-      auto add = term() ~ match("+") ~ term();
-      return add | term(); 
+      auto add = (term() ~ match("+") ~ term()) ^^ (Variant[] input) {
+	return variantArray(input[0]+input[2]);
+      };
+      return add | term();
     }
     Parser term() {
-      auto mult = factor() ~ match("*") ~ factor();
+      auto mult = (factor() ~ match("*") ~ factor()) ^^ (Variant[] input) {
+	return variantArray(input[0]*input[2]);
+      };
       return mult | factor();
     }
     Parser factor() {
@@ -474,12 +488,12 @@ class Parser {
     }
   }
 
-
   unittest {
     auto parser = new ExprParser;
     auto p = parser.expr();
     auto res = cast(Success)(p.parse("1+2*3"));
     assert(res !is null);
+    assert(res.results[0] == 7);
   }
 
   unittest {
@@ -487,6 +501,7 @@ class Parser {
     auto p = parser.expr();
     auto res = cast(Success)(p.parse("1*2+3"));
     assert(res !is null);
+    assert(res.results[0] == 5);
   }
 
   static Parser match(string s) {
