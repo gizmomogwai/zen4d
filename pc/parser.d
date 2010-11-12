@@ -194,8 +194,7 @@ class Parser {
       assert(res !is null);
     }
     unittest {
-      auto parser = new Or(new Matcher("ab"), new Matcher("cd"));
-      parser ^^ (Variant[] input) {
+      auto parser = new Or(new Matcher("ab"), new Matcher("cd")) ^^ (Variant[] input) {
         if (input[0] == "ab") {
           input[0] = "super";
         }
@@ -252,8 +251,7 @@ class Parser {
     }
 
     unittest {
-      auto parser = new And(match("a"), match("b"));
-      parser ^^ (Variant[] result) {
+      auto parser = new And(match("a"), match("b")) ^^ (Variant[] result) {
         string totalString;
         foreach (Variant o ; result) {
           if (o.type == typeid(string)) {
@@ -396,8 +394,7 @@ class Parser {
   }
   static class Number : RegexParser {
     this() {
-      super(r"[-+]?[0-9]*\.?[0-9]+");
-      this ^^ (Variant[] input) {
+      super(r"[-+]?[0-9]*\.?[0-9]+") ^^ (Variant[] input) {
         Variant[] output;
         foreach (Variant o ; input) {
           string s = o.get!(string);
