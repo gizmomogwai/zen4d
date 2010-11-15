@@ -411,6 +411,17 @@ class Parser {
       assert(suc !is null);
     }
   }
+  static class Integer : RegexParser {
+    this() {
+      super(r"\d+") ^^(Variant[] input) {
+        Variant[] res;
+	string s = input[0].get!(string);
+	Variant v = std.conv.parse!(int, string)(s);
+	res ~= v;
+	return res;
+      };
+    }
+  }
 
   static class AlnumParser : RegexParser {
     this() {
