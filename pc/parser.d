@@ -304,6 +304,14 @@ class Parser {
       assert(res.results.length == 0);
       assert(res.rest == "efg");
     }
+    unittest {
+      auto abc = new Matcher("+");
+      auto def = new Integer;
+      auto test = new Opt(new And(abc, def));
+      auto res = cast(Success)(test.parse("+1"));
+      assert(res !is null);
+      assert(res.results.length == 2);
+    }
   }
 
 

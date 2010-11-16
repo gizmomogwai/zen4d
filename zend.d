@@ -11,6 +11,12 @@ class Node {
   this(string name) {
     fName = name;
   }
+  this(Node toCopy) {
+    fName = toCopy.fName;
+    foreach (Node n ; toCopy.fChilds) {
+      fChilds ~= new Node(n);
+    }
+  }
   void addChild(Node n) {
     fChilds ~= n;
   }
@@ -29,102 +35,93 @@ class Node {
     write("</" ~ fName ~ ">\n");
   }
   string toString() {
-    return "Node " ~ fName;
-  }
-}
-
-class MultNode : public Node {
-  int fTimes;
-  this(Node[] child, int mult) {
-    super("");
-    fChilds = child;
-    fTimes = mult;
-  }
-  void print(int indent=0) {
-    for (int i=0; i<fTimes; i++) {
-      foreach (Node child ; fChilds) {
-	child.print(indent);
-      }
+    string res = "Node " ~ fName;
+    foreach (Node child ; fChilds) {
+      res ~= "  " ~ child.toString();
     }
+    return res;
   }
 }
 
-//           zen -> multWithChild | multWithSibbling | mult
-// multWithChild -> mult > zen
-// multWithSibbling -> mult + zen
-// mult -> number * node | node
-// node -> alnum | ( zen )
 
-//       zen -> sibbling { + sibbling }
-// sibbling  -> mult { > mult }
+//       zen -> sibbling { + zen }
+// sibbling  -> mult { > sibbling }
 // mult      -> number * node | node
 // node      -> alnum | (zen)
-Parser lazyZen() {
-  return new Parser.LazyParser( &zen );
-}
 
+Parser lazyZen() {
+  return new Parser.LazyParser(&zen);
+}
 Parser zen() {
-  return multWithChild() | multWithSibbling() | mult();
+  auto h = (Parser.match("+") ~ lazyZen()) ^^ (Variant[] input) {
+    return input[1..$];
+  };
+  return (sibbling() ~ new Parser.Opt(h)) ^^ (Variant[] input) {
+    Node[] res;
+    foreach (Node n; input[0].get!(Node[])) {
+      res ~= n;
+    }
+    if (input.length > 1) {
+      foreach (Node n; input[1].get!(Node[])) {
+        res ~= n;
+      }
+    }
+    return variantArray(res);
+  };
+}
+Parser lazySibbling() {
+  return new Parser.LazyParser(&sibbling);
+}
+Parser sibbling() {
+  auto h = (Parser.match(">") ~ lazySibbling()) ^^ (Variant[] input) {
+    return variantArray(input[1]);
+  };
+  Parser res = (mult() ~ new Parser.Opt(h)) ^^ (Variant[] input) {
+    if (input.length == 1) {
+      return input;
+    } else if (input.length == 2) {
+      auto parents = input[0].get!(Node[]);
+      auto childs = input[1].get!(Node[]);
+      Node[] res;
+      foreach (Node parent ; parents) {
+        res ~= parent;
+        foreach (Node child ; childs) {
+          parent.addChild(child);
+        }
+      }
+      return variantArray(res);
+    }
+    assert(false);
+  };
+  return res;
 }
 
 Parser mult() {
-  Variant[] multnode(int factorIdx, int nodesIdx, Variant[] input) {
-    int factor = input[factorIdx].get!(int);
-    Node[] nodes = input[nodesIdx].get!(Node[]);
-    auto node = new MultNode(nodes, factor);
+  auto factorized = (new Parser.Integer ~ Parser.match("*") ~ node()) ^^ (Variant[] input) {
+    int f = input[0].get!(int);
+    auto nodes = input[2].get!(Node[]);
     Node[] res;
-    res ~= node;
+    for (int i=0; i<f; i++) {
+      foreach (Node n ; nodes) {
+        res ~= new Node(n);
+      }
+    }
     return variantArray(res);
-  }
-  auto numberTimesNode = (new Parser.Integer ~ Parser.match("*") ~ lazyZen()) ^^ (Variant[] input) {
-    return multnode(0, 2, input);
   };
-  return numberTimesNode | node();
+  return factorized | node();
 }
 
 Parser node() {
-  auto alnum =  new Parser.AlnumParser ^^ (Variant[] input) {
+  auto alnum = new Parser.AlnumParser ^^ (Variant[] input) {
     Node[] res;
     res ~= new Node(input[0].get!(string));
     return variantArray(res);
   };
-  return alnum | (Parser.match("(") ~ lazyZen() ~ Parser.match(")")) ^^ (Variant[] input) {
-    auto realValues = input[1..$-1];
-    return realValues;
+  auto rec = (Parser.match("(") ~ lazyZen() ~ Parser.match(")")) ^^ (Variant[] input) {
+    return input[1..$-1];
   };
-}
 
-Parser multWithChild() {
-  return (mult() ~ Parser.match(">") ~ lazyZen()) ^^ (Variant[] input) {
-    void prepareParent(Node parent, Variant v) {
-      if (v.type == typeid(Node[])) {
-        foreach (Node n ; v.get!(Node[])) {
-          parent.addChild(n);
-        }
-      } else {
-        assert(false);
-      }
-    }
-    auto parents = input[0];
-    auto childs = input[2];
-    if (parents.type == typeid(Node[])) {
-      foreach(Node n ; parents.get!(Node[])) {
-        prepareParent(n, childs);
-      }
-    } else {
-      assert(false);
-    }
-    return variantArray(parents);
-  };
-}
-
-Parser multWithSibbling() {
-  return (mult() ~ Parser.match("+") ~ lazyZen()) ^^ (Variant[] input) {
-    Node[] r;
-    r ~= input[0].get!(Node[]);
-    r ~= input[2].get!(Node[]);
-    return variantArray(r);
-  };
+  return alnum | rec;
 }
 
 void printResult(Variant r) {
@@ -135,27 +132,36 @@ void printResult(Variant r) {
 
 Object check(string s) {
   writefln("checking %s:", s);
-  auto res = cast(Parser.Success)(zen().parseAll(s));
-  if (res is null) {
-    writeln("could not parse: " ~ s);
+  auto res = zen().parseAll(s);
+  auto suc = cast(Parser.Success)(res);
+  auto err = cast(Parser.Error)(res);
+  if (err !is null) {
+    writeln("could not parse: " ~ s ~ ": " ~ err.message);
     return null;
   }
-  Variant r = res.results[0];
+  Variant r = suc.results[0];
   printResult(r);
   return res;
 }
 
 unittest {
+  assert(check("a+a+a") !is null);
+
   assert(check("a") !is null);
+  assert(check("5*a") !is null);
   assert(check("a>a") !is null);
   assert(check("a+a") !is null);
+
+  assert(check("(a+b)>(c+d)") !is null);
+
   assert(check("a>(a+b+c)") !is null);
-  assert(check("(a+b)>(a+b)") !is null);
   assert(check("a>b+c+d") !is null);
   assert(check("a>b>(c>d)") !is null);
   assert(check("a+(b>c)+c") !is null);
   assert(check("a+b+c+d+e+f") !is null);
   assert(check("a>b>c>d>e>f") !is null);
+  assert(check("a>b>2*(c+d)") !is null);
+  assert(check("1+3*a>(a_1+a_2)+3") !is null);
 }
 
 int main(string[] args) {
