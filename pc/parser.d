@@ -32,7 +32,6 @@ class Parser {
     return new Success(rest, variantArray(args));
   }
 
-
   static class Success : Result {
     string fRest;
     Variant[] fResults;
@@ -385,7 +384,12 @@ class Parser {
       } else if (res.pre.length > 0) {
         return new Error("did not match " ~ fRegex);
       } else {
-        return transform(success(res.post, res.hit));
+        Variant[] results;
+	foreach (c; res.captures) {
+	  Variant v = c;
+          results ~= v;
+        }
+        return transform(new Success(res.post, results));
       }
     }
     unittest {
@@ -398,6 +402,11 @@ class Parser {
       auto parser = new RegexParser("abc");
       Error err = cast(Error)(parser.parse("babc"));
       assert(err !is null);
+    }
+    unittest {
+      auto parser = new RegexParser("(.)(.)(.)");
+      auto res = cast(Success)(parser.parse("abc"));
+      assert(res.results.length == 4);
     }
   }
   static class Number : RegexParser {
@@ -421,25 +430,26 @@ class Parser {
   }
   static class Integer : RegexParser {
     this() {
-      super(r"\d+") ^^(Variant[] input) {
-        Variant[] res;
+      super(r"\d+") ^^ (Variant[] input) {
 	string s = input[0].get!(string);
 	Variant v = std.conv.parse!(int, string)(s);
-	res ~= v;
-	return res;
+	return variantArray(v);
       };
     }
   }
 
   static class AlnumParser : RegexParser {
     this() {
-      super(r"\w[\w\d]*");
+      super(r"\w[\w\d]*") ^^ (Variant[] input) {
+        return variantArray(input[0]);
+      };
     }
   }
   unittest {
     auto parser = new AlnumParser;
     Success suc = cast(Success)(parser.parse("a1234"));
     assert(suc !is null);
+    assert(suc.results[0] == "a1234");
   }
   static class LazyParser : Parser {
     Callable!(Parser) fCallable;
