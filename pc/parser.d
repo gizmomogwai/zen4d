@@ -384,12 +384,12 @@ class Parser {
       } else if (res.pre.length > 0) {
         return new Error("did not match " ~ fRegex);
       } else {
-        Variant[] results;
+        auto results = appender!(Variant[])();
 	foreach (c; res.captures) {
 	  Variant v = c;
-          results ~= v;
+          results.put(v);
         }
-        return transform(new Success(res.post, results));
+        return transform(new Success(res.post, results.data));
       }
     }
     unittest {
