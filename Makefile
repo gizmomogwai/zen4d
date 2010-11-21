@@ -1,7 +1,12 @@
-all: zend
+SOURCES=zend.d pc/parser.d util/Callable.d
 
-zend: zend.d pc/parser.d util/Callable.d
-	dmd -D -unittest zend.d pc/parser.d util/Callable.d
+all: zend zend_release
+
+zend: $(SOURCES)
+	dmd -D -unittest -odout_unittest -of$@ $^
+
+zend_release: $(SOURCES)
+	dmd -D -odout_release -of$@ $^
 
 clean:
 	find . -name "*.o" -delete

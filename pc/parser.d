@@ -9,19 +9,6 @@ import util.callable;
 import std.regex;
 import std.variant;
 
-class String {
-  string fString;
-  this(string s) {
-    fString = s;
-  }
-  string get() {
-    return fString;
-  }
-  string toString() {
-    return "String '" ~ fString ~ "'";
-  }
-}
-
 class Parser {
   Callable!(Variant[], Variant[]) fCallable = null;
 
@@ -108,15 +95,20 @@ class Parser {
 
   static class Matcher : Parser {
     string fExpected;
-
-    this(string expected) {
+    bool fCollect;
+    this(string expected, bool collect=true) {
       fExpected = expected;
+      fCollect = collect;
     }
 
     Result parse(string s) {
       if (s.indexOf(fExpected) == 0) {
         string rest = s[fExpected.length..$];
-        return transform(success(rest, fExpected));
+	if (fCollect) {
+          return transform(success(rest, fExpected));
+        } else {
+	  return success(rest);
+	}
       } else {
         return new Error("Expected: '" ~ fExpected ~ "' but got '" ~ s ~ "'");
       }
@@ -154,6 +146,12 @@ class Parser {
       };
       auto suc = cast(Success)(parser.parse("test"));
       assert(suc.results[0] == "super");
+    }
+    unittest {
+      auto parser = new Matcher("test", false);
+      auto suc = cast(Success)(parser.parseAll("test"));
+      assert(suc !is null);
+      assert(suc.results.length == 0);
     }
 
   }
@@ -530,8 +528,8 @@ class Parser {
     assert(res.results[0] == 5);
   }
 
-  static Parser match(string s) {
-    return new Matcher(s);
+  static Parser match(string s, bool collect=true) {
+    return new Matcher(s, collect);
   }
 
   unittest {
