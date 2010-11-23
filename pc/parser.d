@@ -256,10 +256,8 @@ class Parser {
           }
         }
 
-        Variant[] res;
         Variant v = totalString;
-        res ~= v;
-        return res;
+        return [v];
       };
 
       auto suc = cast(Success)(parser.parse("ab"));
@@ -410,13 +408,13 @@ class Parser {
   static class Number : RegexParser {
     this() {
       super(r"[-+]?[0-9]*\.?[0-9]+") ^^ (Variant[] input) {
-        Variant[] output;
+        auto output = appender!(Variant[])();
         foreach (Variant o ; input) {
           string s = o.get!(string);
           Variant v = std.conv.parse!(double, string)(s);
-          output ~= v;
+          output.put(v);
         }
-        return output;
+        return output.data;
       };
     }
     unittest {

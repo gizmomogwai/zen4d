@@ -127,9 +127,7 @@ class ZenParserAst : ZenParser {
         idx += 2;
       }
 
-      Node[] nodes;
-      nodes ~= res;
-      return variantArray(nodes);
+      return variantArray([res]);
     };
   }
   Parser rec() {
@@ -141,21 +139,19 @@ class ZenParserAst : ZenParser {
           res.addChild(c);
         }
       }
-      Node[] nodes;
-      nodes ~= res;
-      return variantArray(nodes);
+      return variantArray([res]);
     };
   }
   Parser factorized() {
     return super.factorized() ^^ (Variant[] input) {
       int f = input[0].get!(int);
       auto nodes = input[1].get!(Node[]);
-      Node[] res;
+      auto res = appender!(Node[])();
       foreach (Node n ; nodes) {
         n.multiply = f;
-        res ~= n;
+        res.put(n);
       }
-      return variantArray(res);
+      return variantArray(res.data);
     };
   }
   Parser sibbling() {
@@ -165,30 +161,30 @@ class ZenParserAst : ZenParser {
       } else if (input.length == 2) {
         auto parents = input[0].get!(Node[]);
         auto childs = input[1].get!(Node[]);
-        Node[] res;
+        auto res = appender!(Node[])();
         foreach (Node parent ; parents) {
-          res ~= parent;
+          res.put(parent);
           foreach (Node child ; childs) {
             parent.strangeAddChild(child);
           }
         }
-        return variantArray(res);
+        return variantArray(res.data);
       }
       assert(false);
     };
   }
   Parser zen() {
     return super.zen() ^^ (Variant[] input) {
-      Node[] res;
+      auto res = appender!(Node[])();
       foreach (Node n; input[0].get!(Node[])) {
-        res ~= n;
+        res.put(n);
       }
       if (input.length > 1) {
         foreach (Node n; input[1].get!(Node[])) {
-          res ~= n;
+          res.put(n);
         }
       }
-      return variantArray(res);
+      return variantArray(res.data);
     };
   }
 }
