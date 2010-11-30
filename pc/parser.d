@@ -202,6 +202,11 @@ class Parser {
       suc = cast(Success)(parser.parse("cd"));
       assert(suc.results[0] == "cd");
     }
+    unittest {
+      auto parser = new Or(new Matcher("a", false), new Matcher("b"));
+      auto res = cast(Success)(parser.parse("ab"));
+      assert(res !is null);
+    }
   }
 
   static class And : Parser {
@@ -244,6 +249,11 @@ class Parser {
     unittest {
       auto parser = new And(match("a"), match("b"));
       auto res = cast(Error)(parser.parse("ac"));
+      assert(res !is null);
+    }
+    unittest {
+      auto parser = new And(match("a", false), match("b"));
+      auto res = cast(Success)(parser.parse("ab"));
       assert(res !is null);
     }
 
@@ -324,9 +334,12 @@ class Parser {
         auto suc = cast(Success)(res);
         if (suc !is null) {
           rest = suc.rest;
+	  results.put(suc.results);
+/*
 	  foreach (result ; suc.results) {
 	    results.put(result);
 	  }
+*/
         } else {
           break;
         }
@@ -339,7 +352,7 @@ class Parser {
       auto res = cast(Success)(parser.parse("aa"));
       assert(res !is null);
       assert(res.rest == "");
-      assert(res.fResults.length == 2);
+      assert(res.results.length == 2);
     }
     unittest {
       auto parser = new Repeat(new Matcher("a"));
@@ -359,6 +372,13 @@ class Parser {
       auto res = cast(Success)(parser.parse("+-+-+"));
       assert(res !is null);
       assert(res.rest == "+");
+    }
+    unittest {
+      auto parser = new Repeat(match("a", false));
+      auto res = cast(Success)(parser.parse("aaaa"));
+      assert(res !is null);
+      assert(res.rest.length == 0);
+      assert(res.results.length == 0);
     }
   }
 
