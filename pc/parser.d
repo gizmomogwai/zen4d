@@ -324,12 +324,14 @@ class Parser {
         auto suc = cast(Success)(res);
         if (suc !is null) {
           rest = suc.rest;
-          results.put(suc.results);
+	  foreach (result ; suc.results) {
+	    results.put(result);
+	  }
         } else {
           break;
         }
       }
-      return success(rest, results.data);
+      return new Success(rest, results.data);
     }
 
     unittest {
@@ -337,6 +339,7 @@ class Parser {
       auto res = cast(Success)(parser.parse("aa"));
       assert(res !is null);
       assert(res.rest == "");
+      assert(res.fResults.length == 2);
     }
     unittest {
       auto parser = new Repeat(new Matcher("a"));
