@@ -344,7 +344,7 @@ class Parser {
           break;
         }
       }
-      return new Success(rest, results.data);
+      return transform(new Success(rest, results.data));
     }
 
     unittest {
@@ -379,6 +379,16 @@ class Parser {
       assert(res !is null);
       assert(res.rest.length == 0);
       assert(res.results.length == 0);
+    }
+    unittest {
+      auto parser = new Repeat(match("a")) ^^ (Variant[] input) {
+        Variant v = input.length;
+	return [v];
+      };
+      auto suc = cast(Success)(parser.parseAll("aaaaa"));
+      writeln(suc.results);
+      assert(suc.results.length == 1);
+      assert(suc.results[0].get!(long) == 5);
     }
   }
 
