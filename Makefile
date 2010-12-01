@@ -1,4 +1,4 @@
-SOURCES=zend.d pc/parser.d util/Callable.d
+SOURCES=zend.d pc/parser.d util/callable.d
 
 all: zend zend_release
 
