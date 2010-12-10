@@ -1,6 +1,7 @@
-SOURCES=zend.d pc/parser.d util/callable.d
+SOURCES=zend.d submodules/combinators_for_d/pc/parser.d
 
 all: zend zend_release
+	./zend
 
 zend: $(SOURCES)
 	dmd -D -unittest -odout_unittest -of$@ $^
@@ -8,7 +9,12 @@ zend: $(SOURCES)
 zend_release: $(SOURCES)
 	dmd -D -odout_release -of$@ $^
 
+docs:
+	doxygen
+
 clean:
 	find . -name "*.o" -delete
 	find . -name "*.html" -delete
-	rm -rf zend
+	rm -rf zend zend_release
+	rm -rf out_release
+	rm -rf out_unittest

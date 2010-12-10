@@ -196,7 +196,7 @@ class ZenParser : Parser {
   }
 
   Parser zen() {
-    return sibbling() ~ new Opt(nextZen());
+    return sibbling() ~ -nextZen();
   }
 
   Parser nextZen() {
@@ -210,7 +210,7 @@ class ZenParser : Parser {
     return match(">", false) ~ lazySibbling();
   }
   Parser sibbling() {
-    return mult() ~ new Opt(nextSibbling());
+    return mult() ~ -nextSibbling();
   }
 
   Parser mult() {
@@ -225,7 +225,7 @@ class ZenParser : Parser {
   }
 
   Parser rec() {
-    return match("(", false) ~ lazyZen() ~ Parser.match(")", false);
+    return match("(", false) ~ lazyZen() ~ match(")", false);
   }
 
   Parser element() {
@@ -236,7 +236,7 @@ class ZenParser : Parser {
   }
 
   Parser id() {
-    auto id = new Opt(match("#") ~ new AlnumParser);
+    auto id = -(match("#") ~ new AlnumParser);
     return id;
   }
 
@@ -245,7 +245,7 @@ class ZenParser : Parser {
   }
 
   Parser classes() {
-    return new Opt(match(".") ~ new AlnumParser ~ lazyClasses());
+    return -(match(".") ~ new AlnumParser ~ lazyClasses());
   }
 }
 
@@ -260,8 +260,8 @@ Object check(string s) {
   writefln("checking %s:", s);
   auto zen = new ZenParserAst;
   auto res = zen.zen().parseAll(s);
-  auto suc = cast(Parser.Success)(res);
-  auto err = cast(Parser.Error)(res);
+  auto suc = cast(ParseSuccess)(res);
+  auto err = cast(ParseError)(res);
   if (err !is null) {
     writeln("could not parse: " ~ s ~ ": " ~ err.message);
     return null;
@@ -297,7 +297,7 @@ unittest {
     string input = (cast(string)(read(inputpath))).strip();
     string expected = (cast(string)(read(outputpath.replace("in", "out")))).strip();
     auto zen = new ZenParserAst;
-    auto suc = cast(Parser.Success)(zen.zen().parseAll(input));
+    auto suc = cast(ParseSuccess)(zen.zen().parseAll(input));
     assert(suc !is null);
     string output;
     foreach (n;suc.results[0].get!(Node[])) {
