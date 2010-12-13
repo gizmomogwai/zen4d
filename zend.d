@@ -107,7 +107,7 @@ class Node {
 // id        -> # alnum
 // classes   -> . alnum {classes}
 class ZenParserAst : ZenParser {
-  Parser element() {
+  StringParser element() {
     return super.element() ^^ (Variant[] input) {
       Node res = new Node(input[0].get!(string)());
       int idx = 1;
@@ -130,7 +130,7 @@ class ZenParserAst : ZenParser {
       return variantArray([res]);
     };
   }
-  Parser rec() {
+  StringParser rec() {
     return super.rec() ^^ (Variant[] input) {
       Node res = new Node("");
       foreach (n; input) {
@@ -142,7 +142,7 @@ class ZenParserAst : ZenParser {
       return variantArray([res]);
     };
   }
-  Parser factorized() {
+  StringParser factorized() {
     return super.factorized() ^^ (Variant[] input) {
       int f = input[0].get!(int);
       auto nodes = input[1].get!(Node[]);
@@ -154,7 +154,7 @@ class ZenParserAst : ZenParser {
       return variantArray(res.data);
     };
   }
-  Parser sibbling() {
+  StringParser sibbling() {
     return super.sibbling() ^^ (Variant[] input) {
       if (input.length == 1) {
         return input;
@@ -173,7 +173,7 @@ class ZenParserAst : ZenParser {
       assert(false);
     };
   }
-  Parser zen() {
+  StringParser zen() {
     return super.zen() ^^ (Variant[] input) {
       auto res = appender!(Node[])();
       foreach (Node n; input[0].get!(Node[])) {
@@ -189,62 +189,64 @@ class ZenParserAst : ZenParser {
   }
 }
 
-class ZenParser : Parser {
+alias Parser!(immutable(char)) StringParser;
 
-  Parser lazyZen() {
-    return new LazyParser(&zen);
+class ZenParser : StringParser {
+
+  StringParser lazyZen() {
+    return lazyParser(&zen);
   }
 
-  Parser zen() {
+  StringParser zen() {
     return sibbling() ~ -nextZen();
   }
 
-  Parser nextZen() {
+  StringParser nextZen() {
     return match("+", false) ~ lazyZen();
   }
-  Parser lazySibbling() {
-    return new LazyParser(&sibbling);
+  StringParser lazySibbling() {
+    return lazyParser(&sibbling);
   }
 
-  Parser nextSibbling() {
+  StringParser nextSibbling() {
     return match(">", false) ~ lazySibbling();
   }
-  Parser sibbling() {
+  StringParser sibbling() {
     return mult() ~ -nextSibbling();
   }
 
-  Parser mult() {
+  StringParser mult() {
     return factorized() | node();
   }
-  Parser factorized() {
+  StringParser factorized() {
     return new Integer ~ match("*", false) ~ node();
   }
 
-  Parser node() {
+  StringParser node() {
     return element() | rec();
   }
 
-  Parser rec() {
+  StringParser rec() {
     return match("(", false) ~ lazyZen() ~ match(")", false);
   }
 
-  Parser element() {
+  StringParser element() {
     auto alnum = new AlnumParser;
     auto id = id();
     auto classes = classes();
     return alnum ~ id ~ classes;
   }
 
-  Parser id() {
+  StringParser id() {
     auto id = -(match("#") ~ new AlnumParser);
     return id;
   }
 
-  Parser lazyClasses() {
-    return new LazyParser(&classes);
+  StringParser lazyClasses() {
+    return lazyParser(&classes);
   }
 
-  Parser classes() {
+  StringParser classes() {
     return -(match(".") ~ new AlnumParser ~ lazyClasses());
   }
 }
@@ -260,13 +262,11 @@ Object check(string s) {
   writefln("checking %s:", s);
   auto zen = new ZenParserAst;
   auto res = zen.zen().parseAll(s);
-  auto suc = cast(ParseSuccess)(res);
-  auto err = cast(ParseError)(res);
-  if (err !is null) {
-    writeln("could not parse: " ~ s ~ ": " ~ err.message);
+  if (!res.success) {
+    writeln("could not parse: " ~ s ~ ": " ~ res.message);
     return null;
   }
-  Variant r = suc.results[0];
+  Variant r = res.results[0];
   printResult(r);
   return res;
 }
@@ -297,10 +297,10 @@ unittest {
     string input = (cast(string)(read(inputpath))).strip();
     string expected = (cast(string)(read(outputpath.replace("in", "out")))).strip();
     auto zen = new ZenParserAst;
-    auto suc = cast(ParseSuccess)(zen.zen().parseAll(input));
-    assert(suc !is null);
+    auto res = zen.zen().parseAll(input);
+    assert(res.success);
     string output;
-    foreach (n;suc.results[0].get!(Node[])) {
+    foreach (n;res.results[0].get!(Node[])) {
       output ~= n.print();
     }
     output = output.strip();
