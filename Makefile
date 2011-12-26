@@ -1,4 +1,4 @@
-SOURCES=zend.d submodules/combinators_for_d/pc/parser.d
+SOURCES=submodules/combinators_for_d/pc/parser.d zend.d
 
 all: zend zend_release
 	./zend

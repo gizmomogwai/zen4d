@@ -310,26 +310,6 @@ unittest {
     }
     assert(expected == output);
   }
-  /+
-  assert(check("a+a+a") !is null); // 1
-
-  assert(check("a") !is null); // 2
-  assert(check("5*a") !is null); // 3
-  assert(check("a>a") !is null); // 4
-
-  assert(check("(a+b)>(c+d)") !is null); // 5
-
-  assert(check("a>(a+b+c)") !is null); // 6
-  assert(check("a>b+c+d") !is null); // 7
-  assert(check("a>b>(c>d)") !is null); // 8
-  assert(check("a+(b>c)+c") !is null); // 9
-  assert(check("a+b+c+d+e+f") !is null); // 10
-  assert(check("a>b>c>d>e>f") !is null); // 11
-  assert(check("a>b>2*(c+d)") !is null); // 12
-  assert(check("1+3*a>(a_1+a_2)+3") !is null); // 13
-  assert(check("a#id.class1.class2>b") !is null); // 14
-  assert(check("2*a#id.class1.class2>b") !is null); // 15
-+/
 }
 
 int main(string[] args) {
