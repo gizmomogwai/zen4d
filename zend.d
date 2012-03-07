@@ -41,7 +41,32 @@ class Node {
     return res;
   }
 
-  string print(int indent=0) {
+  string toHaml(int indent=0) {
+    string res;
+    int newIndent = indent;
+    for (int i=0; i<this.multiply; i++) {
+      if (fName.length > 0) {
+        res ~= printIndent(indent);
+        res ~= "%" ~ fName;
+        newIndent = indent+2;
+      }
+      if (fId !is null) {
+        res ~= "#" ~fId;
+      }
+      if (fClasses.length > 0) {
+      	 res ~= "." ~ std.string.join(fClasses, ".");
+      }
+      if (fName.length > 0) {
+        res ~= "\n";
+      }
+      foreach (Node n; fChilds) {
+        res ~= n.toHaml(newIndent);
+      }
+    }
+    return res;
+  }
+
+  string toHtml(int indent=0) {
     string res;
     int newIndent = indent;
     for (int i=0; i<this.multiply; i++) {
@@ -58,7 +83,7 @@ class Node {
         newIndent = indent+2;
       }
       foreach (Node n ; fChilds) {
-        res ~= n.print(newIndent);
+        res ~= n.toHtml(newIndent);
       }
       if (fName.length > 0) {
         res ~= printIndent(indent);
@@ -251,15 +276,22 @@ class ZenParser : StringParser {
   }
 }
 
+string doHtml(Node n) {
+  return n.toHtml();
+}
+string doHaml(Node n) {
+  return n.toHaml();
+}
 
-void printResult(Variant r) {
+void printResult(Variant r, string function(Node) whatToDo) {
   foreach (Node n ; r.get!(Node[])) {
-    write(n.print());
+    write(whatToDo(n));
   }
 }
 
-Object check(string s) {
-  writefln("checking %s:", s);
+
+Object check(string s, string function(Node) whatToDo) {
+//  writefln("checking %s:", s);
   auto zen = new ZenParserAst;
   auto res = zen.zen().parseAll(s);
   if (!res.success) {
@@ -267,7 +299,7 @@ Object check(string s) {
     return null;
   }
   Variant r = res.results[0];
-  printResult(r);
+  printResult(r, whatToDo);
   return res;
 }
 
@@ -284,37 +316,61 @@ unittest {
         c2 = got[i];
       }
       if (c1 != c2) {
-        writeln("error: expected " ~c1 ~ " got " ~ c2);
+        writeln("error: expected '" ~c1 ~ "' got '" ~ c2 ~ "'");
       } else {
         write(c1);
       }
     }
   }
 
-  foreach (string inputpath; dirEntries("testdata/in", SpanMode.breadth)) {
-    string outputpath = inputpath.replace("in", "out");
-    writefln("comparing %s with %s", inputpath, outputpath);
+
+  void compare(string inputpath, string outputpath, string function(Node) whatToCall) {
     string input = (cast(string)(read(inputpath))).strip();
     string expected = (cast(string)(read(outputpath.replace("in", "out")))).strip();
     auto zen = new ZenParserAst;
     auto res = zen.zen().parseAll(input);
     assert(res.success);
     string output;
+    debug { writeln("input: " ~input); }
+    debug { writeln("expected: " ~expected); }
     foreach (n;res.results[0].get!(Node[])) {
-      output ~= n.print();
+      output ~= whatToCall(n);
     }
     output = output.strip();
+    debug { writeln("got: " ~output); }
     if (expected != output) {
       writeln("problem in " ~ inputpath);
       showError(expected, output);
     }
     assert(expected == output);
+
   }
+  foreach (string inputpath; dirEntries("testdata/in", SpanMode.breadth)) {
+    auto outputpath = inputpath.replace("in", "out");
+
+    auto html = outputpath ~ ".html";
+    writefln("comparing %s with %s", inputpath, html);
+    compare(inputpath, html, &doHtml);
+
+    auto haml = outputpath ~ ".haml";
+    writefln("comparing %s with %s", inputpath, haml);
+    compare(inputpath, haml, &doHaml);
+  }
+
 }
 
 int main(string[] args) {
-  foreach (string input ; args[1..$]) {
-    check(input);
+  auto startIdx = 1;
+  auto toDo = &doHtml;
+  if (args.length > 1) {
+    startIdx = 1;
+    if (args[1] == "-h") {
+      startIdx = 2;
+      toDo = &doHaml;
+    }
+  }
+  foreach (string input ; args[startIdx..$]) {
+    check(input, toDo);
   }
   return 0;
 }

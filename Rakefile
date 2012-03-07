@@ -17,6 +17,10 @@ file 'build/zend.test' => SOURCES do
   sh "dmd -unittest -odbuild -ofbuild/zend.test #{SOURCES.join(' ')}"
 end
 
+task :test => 'build/zend.test' do |t|
+  sh t.prerequisites.first
+end
+
 task :docs do
   sh 'doxygen'
 end
