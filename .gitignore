@@ -1,6 +1,2 @@
 *~
-*.o
-zend
-zend_release
-docs
-*.html
+build

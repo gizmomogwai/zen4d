@@ -1,15 +1,20 @@
 SOURCES = ['submodules/combinators_for_d/pc/parser.d', 'zend.d']
 
-
-task :default => ['build/zend', 'build/zend.test', :docs] do
+desc 'builds all'
+task :default => [:binaries, :docs] do
 end
 
-task 'build/zend' => SOURCES do
-  sh "dmd -D -odbuild  -ofbuild/zend #{SOURCES.join(' ')}"
+desc 'builds test and release executables'
+task :binaries => ['build/zend', 'build/zend.test']
+
+desc 'release-executable'
+file 'build/zend' => SOURCES do
+  sh "dmd -odbuild  -ofbuild/zend #{SOURCES.join(' ')}"
 end
 
-task 'build/zend.test' => SOURCES do
-  sh "dmd -D -unittest -odbuild -ofbuild/zend.test #{SOURCES.join(' ')}"
+desc 'test-executable'
+file 'build/zend.test' => SOURCES do
+  sh "dmd -unittest -odbuild -ofbuild/zend.test #{SOURCES.join(' ')}"
 end
 
 task :docs do
