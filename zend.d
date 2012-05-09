@@ -1,6 +1,8 @@
 import std.stdio;
 
 import pc.parser;
+import pc.alnumparser;
+import pc.integer;
 import std.variant;
 import std.array;
 import std.file;
@@ -244,7 +246,7 @@ class ZenParser : StringParser {
     return factorized() | node();
   }
   StringParser factorized() {
-    return new Integer ~ match("*", false) ~ node();
+    return integer!(immutable(char))() ~ match("*", false) ~ node();
   }
 
   StringParser node() {
@@ -256,14 +258,13 @@ class ZenParser : StringParser {
   }
 
   StringParser element() {
-    auto alnum = new AlnumParser;
     auto id = id();
     auto classes = classes();
-    return alnum ~ id ~ classes;
+    return alnum!(immutable(char))() ~ id ~ classes;
   }
 
   StringParser id() {
-    auto id = -(match("#") ~ new AlnumParser);
+    auto id = -(match("#") ~ alnum!(immutable(char))());
     return id;
   }
 
@@ -272,7 +273,7 @@ class ZenParser : StringParser {
   }
 
   StringParser classes() {
-    return -(match(".") ~ new AlnumParser ~ lazyClasses());
+    return -(match(".") ~ alnum!(immutable(char))() ~ lazyClasses());
   }
 }
 

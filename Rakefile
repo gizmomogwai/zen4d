@@ -1,7 +1,7 @@
-SOURCES = ['submodules/combinators_for_d/pc/parser.d', 'zend.d']
+SOURCES = Dir.glob('submodules/combinators_for_d/pc/*.d') + ['zend.d']
 
 desc 'builds all'
-task :default => [:binaries, :docs] do
+task :default => [:binaries] do
 end
 
 desc 'builds test and release executables'
@@ -14,16 +14,13 @@ end
 
 desc 'test-executable'
 file 'build/zend.test' => SOURCES do
-  sh "dmd -unittest -odbuild -ofbuild/zend.test #{SOURCES.join(' ')}"
+  sh "dmd -D -Ddbuild/docs/ddoc -unittest -odbuild -ofbuild/zend.test #{SOURCES.join(' ')}"
 end
 
 task :test => 'build/zend.test' do |t|
   sh t.prerequisites.first
 end
 
-task :docs do
-  sh 'doxygen'
-end
 task :clean do
   sh 'rm -rf build'
 end
