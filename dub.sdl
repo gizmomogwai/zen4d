@@ -1,0 +1,5 @@
+name "zen"
+description "Implementation of zen."
+copyright "Copyright © 2015, gizmo"
+authors "gizmo"
+dependency "combinators_for_d" version="*"

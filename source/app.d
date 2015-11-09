@@ -1,3 +1,4 @@
+module zend;
 import std.stdio;
 
 import pc.parser;
@@ -95,7 +96,7 @@ class Node {
     return res;
   }
 
-  string toString() {
+  override string toString() {
     string res = "Node " ~ fName;
     if (fId !is null) {
       res ~= "#" ~ fId;
@@ -134,7 +135,7 @@ class Node {
 // id        -> # alnum
 // classes   -> . alnum {classes}
 class ZenParserAst : ZenParser {
-  StringParser element() {
+  override StringParser element() {
     return super.element() ^^ (Variant[] input) {
       Node res = new Node(input[0].get!(string)());
       int idx = 1;
@@ -157,7 +158,7 @@ class ZenParserAst : ZenParser {
       return variantArray([res]);
     };
   }
-  StringParser rec() {
+  override StringParser rec() {
     return super.rec() ^^ (Variant[] input) {
       Node res = new Node("");
       foreach (n; input) {
@@ -169,7 +170,7 @@ class ZenParserAst : ZenParser {
       return variantArray([res]);
     };
   }
-  StringParser factorized() {
+  override StringParser factorized() {
     return super.factorized() ^^ (Variant[] input) {
       int f = input[0].get!(int);
       auto nodes = input[1].get!(Node[]);
@@ -181,7 +182,7 @@ class ZenParserAst : ZenParser {
       return variantArray(res.data);
     };
   }
-  StringParser sibbling() {
+  override StringParser sibbling() {
     return super.sibbling() ^^ (Variant[] input) {
       if (input.length == 1) {
         return input;
@@ -200,7 +201,7 @@ class ZenParserAst : ZenParser {
       assert(false);
     };
   }
-  StringParser zen() {
+  override StringParser zen() {
     return super.zen() ^^ (Variant[] input) {
       auto res = appender!(Node[])();
       foreach (Node n; input[0].get!(Node[])) {
