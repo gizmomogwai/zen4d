@@ -1,9 +1,9 @@
 module zend;
 import std.stdio;
 
-import pc.parser;
-import pc.alnumparser;
-import pc.integer;
+import pc4d.parser;
+import pc4d.alnumparser;
+import pc4d.integer;
 import std.variant;
 import std.array;
 import std.file;
@@ -318,9 +318,9 @@ unittest {
         c2 = got[i];
       }
       if (c1 != c2) {
-        writeln("error: expected '" ~c1 ~ "' got '" ~ c2 ~ "'");
+        debug { writeln("error: expected '" ~c1 ~ "' got '" ~ c2 ~ "'"); }
       } else {
-        write(c1);
+        debug { write(c1); }
       }
     }
   }
@@ -341,7 +341,7 @@ unittest {
     output = output.strip();
     debug { writeln("got: " ~output); }
     if (expected != output) {
-      writeln("problem in " ~ inputpath);
+      debug { writeln("problem in " ~ inputpath); }
       showError(expected, output);
     }
     assert(expected == output);
@@ -351,11 +351,11 @@ unittest {
     auto outputpath = inputpath.replace("in", "out");
 
     auto html = outputpath ~ ".html";
-    writefln("comparing %s with %s", inputpath, html);
+    debug { writefln("comparing %s with %s", inputpath, html); }
     compare(inputpath, html, &doHtml);
 
     auto haml = outputpath ~ ".haml";
-    writefln("comparing %s with %s", inputpath, haml);
+    debug { writefln("comparing %s with %s", inputpath, haml); }
     compare(inputpath, haml, &doHaml);
   }
 
