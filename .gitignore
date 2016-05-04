@@ -1,4 +1,6 @@
 .dub
+bin
+zen
 docs.json
 __dummy.html
 *.o

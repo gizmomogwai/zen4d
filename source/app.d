@@ -1,9 +1,6 @@
-module zend;
 import std.stdio;
 
-import pc4d.parser;
-import pc4d.alnumparser;
-import pc4d.integer;
+import pc4d;
 import std.variant;
 import std.array;
 import std.file;
@@ -57,7 +54,7 @@ class Node {
         res ~= "#" ~fId;
       }
       if (fClasses.length > 0) {
-      	 res ~= "." ~ std.string.join(fClasses, ".");
+        res ~= "." ~ std.string.join(fClasses, ".");
       }
       if (fName.length > 0) {
         res ~= "\n";
@@ -361,18 +358,21 @@ unittest {
 
 }
 
-int main(string[] args) {
-  auto startIdx = 1;
-  auto toDo = &doHtml;
-  if (args.length > 1) {
-    startIdx = 1;
-    if (args[1] == "-h") {
-      startIdx = 2;
-      toDo = &doHaml;
+version(unittest) {
+} else {
+  int main(string[] args) {
+    auto startIdx = 1;
+    auto toDo = &doHtml;
+    if (args.length > 1) {
+      startIdx = 1;
+      if (args[1] == "-h") {
+        startIdx = 2;
+        toDo = &doHaml;
+      }
     }
+    foreach (string input ; args[startIdx..$]) {
+      check(input, toDo);
+    }
+    return 0;
   }
-  foreach (string input ; args[startIdx..$]) {
-    check(input, toDo);
-  }
-  return 0;
 }
