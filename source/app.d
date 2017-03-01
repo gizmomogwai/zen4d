@@ -59,7 +59,7 @@ class Node {
       if (fName.length > 0) {
         res ~= "\n";
       }
-      foreach (Node n; fChilds) {
+      foreach (n; fChilds) {
         res ~= n.toHaml(newIndent);
       }
     }
@@ -82,7 +82,7 @@ class Node {
         res ~= ">\n";
         newIndent = indent+2;
       }
-      foreach (Node n ; fChilds) {
+      foreach (n ; fChilds) {
         res ~= n.toHtml(newIndent);
       }
       if (fName.length > 0) {
@@ -101,7 +101,7 @@ class Node {
     foreach (c ; fClasses) {
       res ~= "." ~ c;
     }
-    foreach (Node child ; fChilds) {
+    foreach (child ; fChilds) {
       res ~= "  " ~ child.toString();
     }
     return res;
@@ -133,7 +133,7 @@ class Node {
 // classes   -> . alnum {classes}
 class ZenParserAst : ZenParser {
   override StringParser element() {
-    return super.element() ^^ (Variant[] input) {
+    return super.element() ^^ (input) {
       Node res = new Node(input[0].get!(string)());
       int idx = 1;
       while (idx+1 < input.length) {
@@ -156,7 +156,7 @@ class ZenParserAst : ZenParser {
     };
   }
   override StringParser rec() {
-    return super.rec() ^^ (Variant[] input) {
+    return super.rec() ^^ (input) {
       Node res = new Node("");
       foreach (n; input) {
         auto childs = n.get!(Node[])();
@@ -168,11 +168,11 @@ class ZenParserAst : ZenParser {
     };
   }
   override StringParser factorized() {
-    return super.factorized() ^^ (Variant[] input) {
+    return super.factorized() ^^ (input) {
       int f = input[0].get!(int);
       auto nodes = input[1].get!(Node[]);
       auto res = appender!(Node[])();
-      foreach (Node n ; nodes) {
+      foreach (n ; nodes) {
         n.multiply = f;
         res.put(n);
       }
@@ -180,16 +180,16 @@ class ZenParserAst : ZenParser {
     };
   }
   override StringParser sibbling() {
-    return super.sibbling() ^^ (Variant[] input) {
+    return super.sibbling() ^^ (input) {
       if (input.length == 1) {
         return input;
       } else if (input.length == 2) {
         auto parents = input[0].get!(Node[]);
         auto childs = input[1].get!(Node[]);
         auto res = appender!(Node[])();
-        foreach (Node parent ; parents) {
+        foreach (parent ; parents) {
           res.put(parent);
-          foreach (Node child ; childs) {
+          foreach (child ; childs) {
             parent.strangeAddChild(child);
           }
         }
@@ -199,13 +199,13 @@ class ZenParserAst : ZenParser {
     };
   }
   override StringParser zen() {
-    return super.zen() ^^ (Variant[] input) {
+    return super.zen() ^^ (input) {
       auto res = appender!(Node[])();
-      foreach (Node n; input[0].get!(Node[])) {
+      foreach (n; input[0].get!(Node[])) {
         res.put(n);
       }
       if (input.length > 1) {
-        foreach (Node n; input[1].get!(Node[])) {
+        foreach (n; input[1].get!(Node[])) {
           res.put(n);
         }
       }
@@ -243,6 +243,7 @@ class ZenParser : StringParser {
   StringParser mult() {
     return factorized() | node();
   }
+
   StringParser factorized() {
     return integer!(immutable(char))() ~ match("*", false) ~ node();
   }
@@ -283,14 +284,14 @@ string doHaml(Node n) {
 }
 
 void printResult(Variant r, string function(Node) whatToDo) {
-  foreach (Node n ; r.get!(Node[])) {
+  foreach (n ; r.get!(Node[])) {
     write(whatToDo(n));
   }
 }
 
 
 Object check(string s, string function(Node) whatToDo) {
-//  writefln("checking %s:", s);
+  //  writefln("checking %s:", s);
   auto zen = new ZenParserAst;
   auto res = zen.zen().parseAll(s);
   if (!res.success) {
@@ -375,4 +376,4 @@ version(unittest) {
     }
     return 0;
   }
-}
+ }
