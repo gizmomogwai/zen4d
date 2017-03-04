@@ -2,13 +2,20 @@ name "zen"
 description "Implementation of zen."
 copyright "Copyright © 2015, gizmo"
 authors "gizmo"
-dependency "pc4d" version="~master"
+dependency "pc4d" version="==1.0.0"
+version "1.0.0"
 x:ddoxFilterArgs ""
 
 configuration "application" {
   targetType "executable"
 
   mainSourceFile "source/app.d"
+}
+
+configuration "library" {
+  targetType "library"
+
+  excludeSourceFiles "source/app.d"
 }
 
 configuration "unittest" {

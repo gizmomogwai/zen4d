@@ -12,3 +12,4 @@ docs
 docs.json
 out
 *.lst
+libzen.a
