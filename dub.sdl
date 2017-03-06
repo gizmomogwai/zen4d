@@ -2,26 +2,31 @@ name "zen"
 description "Implementation of zen."
 copyright "Copyright © 2015, gizmo"
 authors "gizmo"
+
 dependency "pc4d" version="==1.0.0"
+subConfiguration "pc4d" "library"
+
 version "1.0.0"
-x:ddoxFilterArgs ""
 
 configuration "application" {
   targetType "executable"
 
   mainSourceFile "source/app.d"
+  excludedSourceFiles "gen/ut.d"
+
 }
 
 configuration "library" {
   targetType "library"
 
-  excludeSourceFiles "source/app.d"
+  excludedSourceFiles "source/app.d"
 }
 
 configuration "unittest" {
   targetType "executable"
 
-  dependency "unit-threaded" version="*"
-  preBuildCommands "dub run unit-threaded -c gen_ut_main -- -f bin/ut.d"
-  mainSourceFile "bin/ut.d"
+  dependency "unit-threaded" version="==0.7.4"
+  preBuildCommands "dub run unit-threaded -c gen_ut_main -- -f gen/ut.d"
+  mainSourceFile "gen/ut.d"
+  excludedSourceFiles "source/app.d"
 }

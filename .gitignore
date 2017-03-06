@@ -13,3 +13,4 @@ docs.json
 out
 *.lst
 libzen.a
+gen

@@ -1,6 +1,7 @@
 import std.stdio;
 
 import pc4d;
+import pc4d.parsers;
 import std.variant;
 import std.array;
 import std.file;
