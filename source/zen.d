@@ -1,3 +1,7 @@
+/++
+ + Authors: Christian Köstlin
+ +/
+
 import std.stdio;
 
 import pc4d;
