@@ -1,7 +1,7 @@
 /++
  + Copyright: Copyright © 2015, gizmo
  + License:
- + Authors: Christian Köstlin
+ + Authors: Christian Koestlin, Christian Köstlin
  +/
 
 int main(string[] args)
