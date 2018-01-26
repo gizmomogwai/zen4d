@@ -3,7 +3,7 @@
  + License: MIT
  + Authors: Christian Koestlin, Christian Köstlin
  +/
-
+module zenMain;
 import std.stdio;
 
 import pc4d;
