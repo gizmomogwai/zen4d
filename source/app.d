@@ -1,4 +1,8 @@
 /++
+ + License: 
+ +/
+
+/++
  + Authors: Christian Köstlin
  +/
 
