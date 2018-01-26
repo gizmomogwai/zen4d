@@ -30,3 +30,4 @@ configuration "unittest" {
   mainSourceFile "gen/ut.d"
   excludedSourceFiles "source/app.d"
 }
+x:ddoxFilterArgs "--min-protection=Private"
