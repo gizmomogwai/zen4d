@@ -1,8 +1,4 @@
 /++
- + License: 
- +/
-
-/++
  + Copyright: Copyright © 2015, gizmo
  + License:
  + Authors: Christian Koestlin, Christian Köstlin

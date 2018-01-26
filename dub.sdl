@@ -1,6 +1,7 @@
 name "zen"
 description "Implementation of zen."
 copyright "Copyright © 2015, gizmo"
+license "MIT"
 authors "gizmo"
 
 dependency "pc4d" version="~>1.0.0"
