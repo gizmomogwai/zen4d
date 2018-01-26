@@ -10,7 +10,9 @@
  + Authors: Christian Köstlin
  +/
 
-int main(string[] args) {
-  import zen : zen;
-  return zen(args);
+int main(string[] args)
+{
+    import zen : zen;
+
+    return zen(args);
 }
