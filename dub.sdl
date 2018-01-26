@@ -28,3 +28,6 @@ configuration "unittest" {
   excludedSourceFiles "source/app.d"
 }
 x:ddoxFilterArgs "--min-protection=Private"
+sourcePaths "source" "out/generated/packageversion"
+importPaths "source" "out/generated/packageversion"
+preGenerateCommands "dub run packageversion -- --packageName=zen"

@@ -1,7 +1,10 @@
+﻿%YAML 1.1
+---
 language: d
 sudo: false
 before_install:
-  - pip install --user codecov
+- pip install --user codecov
+- dub fetch packageversion
 script: dub test --compiler=${DC} --coverage
 after_success:
-  - codecov
+- codecov
