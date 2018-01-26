@@ -484,6 +484,8 @@ unittest
 
 int zen(string[] args)
 {
+    import zen.packageversion;
+    stderr.writeln(PACKAGE_VERSION);
     auto startIdx = 1;
     auto toDo = &doHtml;
     if (args.length > 1)
