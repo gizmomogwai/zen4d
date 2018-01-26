@@ -1,12 +1,6 @@
 /++
  + Copyright: Copyright © 2015, gizmo
- +/
-
-/++
- + License: 
- +/
-
-/++
+ + License:
  + Authors: Christian Köstlin
  +/
 

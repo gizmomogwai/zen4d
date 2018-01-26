@@ -1,5 +1,1 @@
-* Zen HTML Coding executable [[https://travis-ci.org/gizmomogwai/zen4d][https://travis-ci.org/gizmomogwai/zen4d.svg?branch=master]] [[https://codecov.io/github/gizmomogwai/zen4d][https://codecov.io/github/gizmomogwai/zen4d/coverage.svg?branch=master]]
-[[https://gizmomogwai.github.io/zen4d][https://img.shields.io/readthedocs/pip.svg?style=flat-square]]
-[[https://travis-ci.org/gizmomogwai/zen4d][https://img.shields.io/travis/gizmomogwai/zen4d/master.svg?style=flat-square]]
-[[https://github.com/gizmomogwai/zen4d][https://img.shields.io/github/tag/gizmomogwai/zen4d.svg?style=flat-square]]
-[[https://codecov.io/gh/gizmomogwai/zen4d][https://img.shields.io/codecov/c/github/gizmomogwai/zen4d/master.svg?style=flat-square]]
+* Zen HTML Coding executable [[https://gizmomogwai.github.io/zen4d][https://img.shields.io/readthedocs/pip.svg?style=flat-square]] [[https://travis-ci.org/gizmomogwai/zen4d][https://img.shields.io/travis/gizmomogwai/zen4d/master.svg?style=flat-square]] [[https://github.com/gizmomogwai/zen4d][https://img.shields.io/github/tag/gizmomogwai/zen4d.svg?style=flat-square]] [[https://codecov.io/gh/gizmomogwai/zen4d][https://img.shields.io/codecov/c/github/gizmomogwai/zen4d/master.svg?style=flat-square]]
