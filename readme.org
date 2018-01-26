@@ -1,1 +1,2 @@
 * Zen HTML Coding executable [[https://travis-ci.org/gizmomogwai/zen4d][https://travis-ci.org/gizmomogwai/zen4d.svg?branch=master]] [[https://codecov.io/github/gizmomogwai/zen4d][https://codecov.io/github/gizmomogwai/zen4d/coverage.svg?branch=master]]
+[[https://gizmomogwai.github.io/zen4d][https://img.shields.io/readthedocs/pip.svg?style=flat-square]]
