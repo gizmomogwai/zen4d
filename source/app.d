@@ -6,7 +6,7 @@
 
 int main(string[] args)
 {
-    import zenMain;
+    import zen;
 
-    return zen(args);
+    return zen.zen(args);
 }
