@@ -7,8 +7,6 @@ authors "gizmo"
 dependency "pc4d" version="~>1.0.0"
 subConfiguration "pc4d" "library"
 
-version "1.0.0"
-
 configuration "application" {
   targetType "executable"
   mainSourceFile "source/app.d"
