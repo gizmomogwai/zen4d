@@ -1,6 +1,5 @@
 .dub
 bin
-zen
 docs.json
 __dummy.html
 *.o
@@ -14,3 +13,4 @@ out
 *.lst
 libzen.a
 gen
+/zen
