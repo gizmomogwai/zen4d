@@ -1,7 +1,7 @@
 {
 	"fileVersion": 1,
 	"versions": {
-		"pc4d": "1.0.0",
+    "pc4d": "1.0.2",
 		"unit-threaded": "0.7.36"
 	}
 }
