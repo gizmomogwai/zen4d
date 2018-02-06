@@ -391,7 +391,7 @@ Object check(string s, string function(Node) whatToDo)
     return res;
 }
 
-unittest
+@("walk over all testdata/in|out") unittest
 {
     void showError(string expected, string got)
     {
@@ -484,9 +484,11 @@ unittest
 
 int zen(string[] args)
 {
-    import zen.packageversion;
+    import asciitable;
+    import packageversion;
+    auto table = packageversion.getPackages.keys.sort.fold!((table, key) => table.add(key, packageversion.getPackages[key]))(AsciiTable(0, 0));
+    stderr.writeln("Versions:\n", table.toString("   ", " "));
 
-    stderr.writeln(PACKAGE_VERSION);
     auto startIdx = 1;
     auto toDo = &doHtml;
     if (args.length > 1)
