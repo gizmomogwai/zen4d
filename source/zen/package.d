@@ -5,6 +5,8 @@
  +/
 module zen;
 
+public import zen.packageversion;
+
 import pc4d;
 import std.algorithm;
 import std.array;
@@ -378,12 +380,11 @@ void printResult(Variant r, string function(Node) whatToDo)
 
 Object check(string s, string function(Node) whatToDo)
 {
-    //  writefln("checking %s:", s);
     auto zen = new ZenParserAst;
     auto res = zen.zen().parseAll(s);
     if (!res.success)
     {
-        writeln("could not parse: " ~ s ~ ": " ~ res.message);
+        "could not parse: %s: %s".format(s, res.message).writeln;
         return null;
     }
     Variant r = res.results[0];
@@ -411,7 +412,7 @@ Object check(string s, string function(Node) whatToDo)
             {
                 debug
                 {
-                    writeln("error: expected '" ~ c1 ~ "' got '" ~ c2 ~ "'");
+                    "error: expected '%s' got '%s'".format(c1, c2).writeln;
                 }
             }
             else
@@ -434,11 +435,11 @@ Object check(string s, string function(Node) whatToDo)
         string output;
         debug
         {
-            writeln("input: " ~ input);
+            "input: %s".format(input).writeln;
         }
         debug
         {
-            writeln("expected: " ~ expected);
+            "expected: %s".format(expected).writeln;
         }
         foreach (n; res.results[0].get!(Node[]))
         {
@@ -447,13 +448,13 @@ Object check(string s, string function(Node) whatToDo)
         output = output.strip();
         debug
         {
-            writeln("got: " ~ output);
+            "got: %s".format(output).writeln;
         }
         if (expected != output)
         {
             debug
             {
-                writeln("problem in " ~ inputpath);
+                "problem in %s".format(inputpath).writeln;
             }
             showError(expected, output);
         }
@@ -468,14 +469,14 @@ Object check(string s, string function(Node) whatToDo)
         auto html = outputpath ~ ".html";
         debug
         {
-            writefln("comparing %s with %s", inputpath, html);
+            "comparing %s with %s".format(inputpath, html).writeln;
         }
         compare(inputpath, html, &doHtml);
 
         auto haml = outputpath ~ ".haml";
         debug
         {
-            writefln("comparing %s with %s", inputpath, haml);
+            "comparing %s with %s".format(inputpath, haml).writeln;
         }
         compare(inputpath, haml, &doHaml);
     }
@@ -486,8 +487,13 @@ int zen(string[] args)
 {
     import asciitable;
     import packageversion;
-    auto table = packageversion.getPackages.keys.sort.fold!((table, key) => table.add(key, packageversion.getPackages[key]))(AsciiTable(0, 0));
-    stderr.writeln("Versions:\n", table.toString("   ", " "));
+    // dfmt off
+    auto table = packageversion
+        .getPackages
+        .sort!("a.name < b.name")
+        .fold!((table, p) => table.add(p.name, p.semVer, p.license))(AsciiTable(0, 0, 0));
+    // dfmt on
+    stderr.writeln("Packages:\n", table.toString("   ", " "));
 
     auto startIdx = 1;
     auto toDo = &doHtml;

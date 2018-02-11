@@ -1,9 +1,9 @@
 {
 	"fileVersion": 1,
 	"versions": {
-		"asciitable": "0.0.2+commit.3.g9e77ae1",
-		"packageversion": "0.0.12",
-		"pc4d": "1.0.2",
+		"asciitable": "0.0.3",
+		"packageversion": "0.0.15",
+		"pc4d": "1.0.3",
 		"unit-threaded": "0.7.38"
 	}
 }

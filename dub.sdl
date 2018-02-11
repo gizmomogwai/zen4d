@@ -4,11 +4,19 @@ copyright "Copyright © 2015, gizmo"
 license "MIT"
 authors "gizmo"
 
-dependency "asciitable" version="~>0.0.2"
-dependency "packageversion" version="~>0.0.12"
+x:ddoxFilterArgs "--min-protection=Private"
+
+dependency "packageversion" version="~>0.0.15"
 subConfiguration "packageversion" "library"
 
-dependency "pc4d" version="~>1.0.2"
+preBuildCommands "dub run packageversion -- --packageName=zen"
+sourceFiles "out/generated/packageversion/zen/packageversion.d"
+sourcePaths "source" "out/generated/packageversion"
+importPaths "source" "out/generated/packageversion"
+
+dependency "asciitable" version="~>0.0.3"
+
+dependency "pc4d" version="~>1.0.3"
 subConfiguration "pc4d" "library"
 
 configuration "application" {
@@ -34,8 +42,3 @@ configuration "unittest" {
   mainSourceFile "out/generated/unit-threaded/testsuite.d"
   excludedSourceFiles "source/app.d"
 }
-
-x:ddoxFilterArgs "--min-protection=Private"
-sourcePaths "source" "out/generated/packageversion"
-importPaths "source" "out/generated/packageversion"
-preGenerateCommands "dub run packageversion -- --packageName=zen"
