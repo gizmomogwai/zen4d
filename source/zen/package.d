@@ -483,7 +483,7 @@ Object check(string s, string function(Node) whatToDo)
 
 }
 
-int zen(string[] args)
+int zen_(string[] args)
 {
     import asciitable;
     import packageversion;

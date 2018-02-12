@@ -6,6 +6,6 @@
 
 int main(string[] args)
 {
-    import zen;
-    return zen.zen(args);
+    import zen : zen_;
+    return zen_(args);
 }
