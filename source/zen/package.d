@@ -487,6 +487,7 @@ int zen_(string[] args)
 {
     import asciitable;
     import packageversion;
+
     // dfmt off
     auto table = packageversion
         .getPackages
