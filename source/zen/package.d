@@ -487,29 +487,31 @@ int zen_(string[] args)
 {
     import asciitable;
     import packageversion;
-
+    import colored;
+    import std.conv;
     // dfmt off
     auto table = packageversion
         .getPackages
         .sort!("a.name < b.name")
-        .fold!((table, p) => table.add(p.name, p.semVer, p.license))(AsciiTable(0, 0, 0));
+        .fold!((table, p) => table.row.add(p.name.white).add(p.semVer.lightGray).add(p.license.lightGray).table)
+            (new AsciiTable(3).header.add("Package".bold).add("Version".bold).add("License".bold).table);
     // dfmt on
-    stderr.writeln("Packages:\n", table.toString("   ", " "));
-
+    stderr.writeln("Packageinfo:\n", table.format.prefix("  | ").headerSeparator(true).columnSeparator(true).to!string);
+    
     auto startIdx = 1;
     auto toDo = &doHtml;
     if (args.length > 1)
     {
-        startIdx = 1;
-        if (args[1] == "-h")
-        {
-            startIdx = 2;
-            toDo = &doHaml;
-        }
+      startIdx = 1;
+      if (args[1] == "-h")
+      {
+        startIdx = 2;
+        toDo = &doHaml;
+      }
     }
     foreach (string input; args[startIdx .. $])
     {
-        check(input, toDo);
+      check(input, toDo);
     }
     return 0;
 }
