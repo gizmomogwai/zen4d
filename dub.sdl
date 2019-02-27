@@ -1,8 +1,8 @@
 name "zen"
 description "Implementation of zen."
-copyright "Copyright (c) 2015, gizmo"
+authors "Christian Koestlin"
+copyright "Copyright (c) 2015, Christian Koestlin"
 license "MIT"
-authors "gizmo"
 x:ddoxFilterArgs "--min-protection=Private"
 
 preGenerateCommands "packageversion || dub run packageversion"
