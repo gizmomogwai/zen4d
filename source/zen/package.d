@@ -483,19 +483,21 @@ Object check(string s, string function(Node) whatToDo)
 
 int zen_(string[] args)
 {
-    import asciitable;
-    import packageinfo;
-    import colored;
-    import std.conv;
-    // dfmt off
-    auto table = packageinfo
-        .getPackages
-        .sort!("a.name < b.name")
-        .fold!((table, p) => table.row.add(p.name.white).add(p.semVer.lightGray).add(p.license.lightGray).table)
+    version (unittest) {
+    } else {
+        import asciitable;
+        import packageinfo;
+        import colored;
+        import std.conv;
+        // dfmt off
+        auto table = packageinfo
+            .getPackages
+            .sort!("a.name < b.name")
+            .fold!((table, p) => table.row.add(p.name.white).add(p.semVer.lightGray).add(p.license.lightGray).table)
             (new AsciiTable(3).header.add("Package".bold).add("Version".bold).add("License".bold).table);
-    // dfmt on
-    stderr.writeln("Packageinfo:\n", table.format.prefix("  | ").headerSeparator(true).columnSeparator(true).to!string);
-
+        // dfmt on
+        stderr.writeln("Packageinfo:\n", table.format.prefix("  | ").headerSeparator(true).columnSeparator(true).to!string);
+    }
     auto startIdx = 1;
     auto toDo = &doHtml;
     if (args.length > 1)

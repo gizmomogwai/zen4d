@@ -1,11 +1,17 @@
 {
 	"fileVersion": 1,
 	"versions": {
-		"asciitable": "0.0.13",
+		"asciitable": "0.0.14",
 		"color": "0.0.9",
-		"colored": "0.0.26",
+		"colored": "0.0.27",
+		"mir-algorithm": "3.13.9",
+		"mir-core": "1.1.109",
+		"mir-cpuid": "1.2.7",
+		"mir-ion": "1.0.50",
+		"packageinfo": "~master",
 		"packageversion": "0.0.18",
-		"pc4d": "1.0.7",
+		"pc4d": "1.0.8",
+		"silly": "1.1.1",
 		"unit-threaded": "2.0.4"
 	}
 }

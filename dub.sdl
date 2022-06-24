@@ -5,9 +5,9 @@ copyright "Copyright (c) 2015, Christian Koestlin"
 license "MIT"
 x:ddoxFilterArgs "--min-protection=Private"
 
-dependency "asciitable" version="~>0.0.13"
+dependency "asciitable" version="~>0.0.14"
 dependency "colored" version="~>0.0.26"
-dependency "pc4d" version="~>1.0.7"
+dependency "pc4d" version="~>1.0.8"
 subConfiguration "pc4d" "library"
 
 configuration "application" {
@@ -15,9 +15,11 @@ configuration "application" {
   targetPath "out/main"
 
   mainSourceFile "source/app.d"
+
   preGenerateCommands "dub run packageinfo"
   sourcePaths "source" "out/generated/packageinfo"
   importPaths "source" "out/generated/packageinfo"
+  excludedSourceFiles "source/testsuite.d"
 }
 
 configuration "library" {
@@ -25,6 +27,7 @@ configuration "library" {
   targetPath "out/lib"
 
   excludedSourceFiles "source/app.d"
+  excludedSourceFiles "source/testsuite.d"
 }
 
 configuration "unittest" {
@@ -32,7 +35,6 @@ configuration "unittest" {
   targetPath "out/test"
 
   dependency "unit-threaded" version="~>2.0.4"
-  preBuildCommands "dub run unit-threaded -c gen_ut_main -- -f out/generated/unit-threaded/testsuite.d"
-  mainSourceFile "out/generated/unit-threaded/testsuite.d"
+  mainSourceFile "source/testsuite.d"
   excludedSourceFiles "source/app.d"
 }
