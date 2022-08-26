@@ -5,9 +5,9 @@ copyright "Copyright (c) 2015, Christian Koestlin"
 license "MIT"
 x:ddoxFilterArgs "--min-protection=Private"
 
-dependency "asciitable" version="~>0.0.14"
-dependency "colored" version="~>0.0.26"
-dependency "pc4d" version="~>1.0.8"
+dependency "asciitable" version="~>0.0.15"
+dependency "colored" version="~>0.0.28"
+dependency "pc4d" version="~>1.0.9"
 subConfiguration "pc4d" "library"
 
 configuration "application" {
@@ -34,7 +34,10 @@ configuration "unittest" {
   targetType "executable"
   targetPath "out/test"
 
-  dependency "unit-threaded" version="~>2.0.4"
+  dependency "unit-threaded" version="~>2.1.1"
   mainSourceFile "source/testsuite.d"
   excludedSourceFiles "source/app.d"
+
+  postRunCommands "$DUB run lst2errormessages || true"
 }
+
