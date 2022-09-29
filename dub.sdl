@@ -5,7 +5,7 @@ copyright "Copyright (c) 2015, Christian Koestlin"
 license "MIT"
 x:ddoxFilterArgs "--min-protection=Private"
 
-dependency "asciitable" version="~>0.0.15"
+dependency "asciitable" version="~>0.0.16"
 dependency "colored" version="~>0.0.28"
 dependency "pc4d" version="~>1.0.9"
 subConfiguration "pc4d" "library"

@@ -6,12 +6,17 @@
 module zen;
 
 import pc4d;
-import std.algorithm;
-import std.array;
-import std.file;
-import std.stdio;
-import std.string;
-import std.variant;
+import std.algorithm : map, sort, fold;
+import std.array : split, appender;
+import std.stdio : writeln, write, stderr;
+import std.string : split, join, replace, strip;
+import std.format : format;
+
+version (unittest)
+{
+    import std.algorithm : max;
+    import std.file : read, dirEntries, SpanMode;
+}
 
 class Node
 {
@@ -75,7 +80,7 @@ class Node
             }
             if (fClasses.length > 0)
             {
-                res ~= "." ~ std.string.join(fClasses, ".");
+            res ~= "." ~ fClasses.join(".");
             }
             if (fName.length > 0)
             {
@@ -105,7 +110,7 @@ class Node
                 }
                 if (fClasses.length > 0)
                 {
-                    res ~= " class=\"" ~ std.string.join(fClasses, ",") ~ "\"";
+                    res ~= " class=\"" ~ fClasses.join(",") ~ "\"";
                 }
                 res ~= ">\n";
                 newIndent = indent + 2;
@@ -460,7 +465,7 @@ Object check(string s, string function(Node) whatToDo)
 
     }
 
-    foreach (string inputpath; dirEntries("testdata/in", SpanMode.breadth))
+    foreach (inputpath; "testdata/in".dirEntries(SpanMode.breadth))
     {
         auto outputpath = inputpath.replace("in", "out");
 
@@ -485,13 +490,12 @@ int zen_(string[] args)
 {
     version (unittest) {
     } else {
-        import asciitable;
-        import packageinfo;
-        import colored;
-        import std.conv;
+        import asciitable : AsciiTable;
+        import packageinfo : packages;
+        import colored : bold, white, lightGray;
+        import std.conv : to;
         // dfmt off
-        auto table = packageinfo
-            .packages
+        auto table = packages
             .sort!("a.name < b.name")
             .fold!((table, p) => table.row.add(p.name.white).add(p.semVer.lightGray).add(p.license.lightGray).table)
             (new AsciiTable(3).header.add("Package".bold).add("Version".bold).add("License".bold).table);
