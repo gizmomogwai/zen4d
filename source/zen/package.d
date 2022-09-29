@@ -128,24 +128,6 @@ class Node
         return res;
     }
 
-    override string toString()
-    {
-        string res = "Node " ~ fName;
-        if (fId !is null)
-        {
-            res ~= "#" ~ fId;
-        }
-        foreach (c; fClasses)
-        {
-            res ~= "." ~ c;
-        }
-        foreach (child; fChilds)
-        {
-            res ~= "  " ~ child.toString();
-        }
-        return res;
-    }
-
     void setId(string v)
     {
         if (fId !is null)
