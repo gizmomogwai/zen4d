@@ -5,17 +5,18 @@
  +/
 module zen;
 
-import pc4d;
-import std.algorithm : map, sort, fold;
-import std.array : split, appender;
-import std.stdio : writeln, write, stderr;
-import std.string : split, join, replace, strip;
+import pc4d : match, alnum, Parser, lazyParser, integer;
+import std.algorithm : fold, map, sort;
+import std.array : appender, split;
 import std.format : format;
+import std.stdio : stderr, write, writeln;
+import std.string : join, replace, split, strip;
+import std.variant : Variant, variantArray;
 
 version (unittest)
 {
     import std.algorithm : max;
-    import std.file : read, dirEntries, SpanMode;
+    import std.file : dirEntries, read, SpanMode;
 }
 
 class Node
@@ -444,7 +445,6 @@ Object check(string s, string function(Node) whatToDo)
             showError(expected, output);
         }
         assert(expected == output);
-
     }
 
     foreach (inputpath; "testdata/in".dirEntries(SpanMode.breadth))
@@ -473,8 +473,8 @@ int zen_(string[] args)
     version (unittest) {
     } else {
         import asciitable : AsciiTable;
+        import colored : bold, lightGray, white;
         import packageinfo : packages;
-        import colored : bold, white, lightGray;
         import std.conv : to;
         // dfmt off
         auto table = packages
